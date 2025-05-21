@@ -10,10 +10,10 @@ def validate_shex(rdf_path: str, shex_path: str, focus: str) -> bool:
     results = evaluator.evaluate()
     return results
 
-results = validate_shex("data.rdf", "procedure.shex", "http://hl7.org/fhir/ProcedureShape")
+""" results = validate_shex("/data", "procedure.shex", "http://hl7.org/fhir/ProcedureShape")
 
 for r in results:
     print(f"Focus: {r.focus}")
     print(f"Result: {r.result}")
     print(f"Reason: {r.reason}")
-    print()
+    print() """

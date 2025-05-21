@@ -1,5 +1,6 @@
 from typing import List
-from pydantic import BaseModel, Enum
+from pydantic import BaseModel
+from enum import Enum
 
 class Genero(str, Enum):
     masculino = "M"
@@ -13,7 +14,7 @@ class EstadoCivil(str, Enum):
 # Create your models here.
 class Paciente(BaseModel):
     id: str
-    activo = bool
+    activo: bool
     nombre: str
     apellido: str
     genero: Genero
@@ -35,7 +36,8 @@ class Practicante(BaseModel):
     cualificacion: str
 
     def __str__(self):
-        return f"{"Dr." if self.genero == "M" else "Dra."} {self.nombre} {self.apellido}"
+        titulo = "Dr." if self.genero == Genero.masculino else "Dra."
+        return f"{titulo} {self.nombre} {self.apellido}"
 
 class Diente(BaseModel):
     codigo: str
@@ -46,14 +48,14 @@ class Diente(BaseModel):
         return f"{self.display}" 
     
 class StatusProcedimiento(str, Enum):
-    preparacion = 'preparation', 'Preparación'
-    en_progreso = 'in-progress', 'En Progreso'
-    no_realizado = 'not-done', 'No Realizado'
-    en_espera = 'on-hold', 'En Espera'
-    parado = 'stopped', 'Parado'
-    completado = 'completed', 'Completado'
-    con_errores = 'entered-in-error', 'Con Errores'
-    desconocido = 'unknown', 'Desconocido'
+    preparacion = 'preparation'
+    en_progreso = 'in-progress'
+    no_realizado = 'not-done'
+    en_espera = 'on-hold'
+    parado = 'stopped'
+    completado = 'completed'
+    con_errores = 'entered-in-error'
+    desconocido = 'unknown'
     
 class Procedimiento(BaseModel):
     id: str

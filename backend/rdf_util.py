@@ -1,8 +1,7 @@
 from rdflib import Graph, Namespace, Literal, URIRef
 from typing import List
 from pydantic import BaseModel
-from . import Paciente, Practicante, Diente, Procedimiento, StatusProcedimiento
-
+from .models import Paciente, Practicante, Diente, Procedimiento, StatusProcedimiento
 
 
 def parse_rdf_string(rdf_string: str) -> dict:
