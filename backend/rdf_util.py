@@ -2,9 +2,10 @@ from rdflib import Graph, Namespace, Literal, URIRef, RDF
 from typing import List
 from pydantic import BaseModel
 from pyshex import ShExEvaluator
-from .models import Paciente, Practicante, Diente, Procedimiento, StatusProcedimiento, Genero
-from .data import save_patient, save_practitioner, save_procedure
+from models import Paciente, Practicante, Diente, Procedimiento, StatusProcedimiento, Genero
 import re
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 FHIR = Namespace("http://hl7.org/fhir/")
 EX = Namespace("http://example.org/fhir/custom#")
@@ -32,7 +33,7 @@ def shex_validate_rdf(rdf_string: str, shex_schema: str) -> bool:
                 print(triple)
 
 
-def parse_rdf_string(rdf_string: str) -> dict:
+""" def parse_rdf_string(rdf_string: str) -> dict:
     g = Graph()
     g.parse(data=rdf_string, format="turtle")
 
@@ -97,7 +98,7 @@ def parse_rdf_string(rdf_string: str) -> dict:
             practicante_id=pract_id,
             diente=diente
         ))
-
+ """
 def get_literal(graph: Graph, subject, predicate):
     value = graph.value(subject=subject, predicate=predicate)
     if isinstance(value, Literal):
@@ -106,11 +107,34 @@ def get_literal(graph: Graph, subject, predicate):
         return str(value)
     return ""
 
-
+def parse_enum(enum_cls, raw, field_name: str, focus: str):
+    """
+    _enum_cls_: la clase Enum a usar (p.ej. Genero)
+    _raw_: el valor crudo del graph (puede ser None)
+    _field_name_: nombre del campo (para el mensaje)
+    _focus_: el URI del recurso que estás parseando
+    """
+    if raw is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required field `{field_name}` on node {focus}"
+        )
+    val = str(raw)
+    try:
+        return enum_cls(val)
+    except ValueError:
+        allowed = ", ".join([e.value for e in enum_cls])
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Invalid value `{val}` for `{field_name}` on node {focus}; "
+                f"expected one of [{allowed}]"
+            )
+        )
 
 def extract_start_shape(shex_str: str) -> str | None:
     # Match lines like: start = @<Patient> or start=@<http://hl7.org/fhir/Patient>
-    match = re.search(r"start\s*=\s*@?<([^>]+)>", shex_str)
+    """ match = re.search(r"start\s*=\s*@?<([^>]+)>", shex_str)
     if match:
         shape_label = match.group(1)
         # Add your namespace prefix logic if needed
@@ -124,5 +148,5 @@ def extract_start_shape(shex_str: str) -> str | None:
             }
             if prefix in prefixes:
                 return prefixes[prefix] + local
-        return shape_label  # already a full URI
+        return shape_label  # already a full URI """
     return None

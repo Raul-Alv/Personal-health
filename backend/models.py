@@ -4,9 +4,11 @@ from database import Base
 import enum
 
 class Genero(enum.Enum):
-    masculino = "M"
-    femenino = "F"
-
+    masculino = "male"
+    femenino = "female"
+    otro = "other"
+    desconocido = "unknown"
+    
 class EstadoCivil(enum.Enum):
     soltero = "S"
     casado = "C"
@@ -22,7 +24,13 @@ class Paciente(Base):
     genero = Column(Enum(Genero), nullable=False)
     telefono = Column(String, nullable=True)
     fecha_nacimiento = Column(String, nullable=False)
-    direccion = Column(String, nullable=True)
+    #direccion = Column(String, nullable=True)
+    calle = Column(String, nullable=True)
+    ciudad = Column(String, nullable=True)
+    provincia = Column(String, nullable=True)
+    codigo_postal = Column(String, nullable=True)
+    pais = Column(String, nullable=True)
+
     estado_civil = Column(Enum(EstadoCivil), nullable=True)
     procedimientos = relationship("Procedimiento", back_populates="paciente")
 

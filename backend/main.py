@@ -1,10 +1,11 @@
 import tempfile
-from fastapi import FastAPI, UploadFile, HTTPException, Depends
+from fastapi import FastAPI, UploadFile, HTTPException, Depends, File, Form
 from rdflib import Graph, URIRef, RDF, Literal
 from pyshex import ShExEvaluator
 from database import SessionLocal, engine, Base
 from models import Paciente, Practicante, Diente, Procedimiento, Genero, EstadoCivil
 from sqlalchemy.orm import Session
+from rdf_util import parse_enum
 
 Base.metadata.create_all(bind=engine)
 
@@ -17,8 +18,15 @@ def get_db():
     finally:
         db.close()
 
+@app.post("/updateModels/")
+async def updateModels():
+    # Borra todas las tablas (si existen)…
+    Base.metadata.drop_all(bind=engine)
+    # …y créalas de nuevo según tu modelo
+    Base.metadata.create_all(bind=engine)
+
 @app.post("/upload/")
-async def upload_rdf_shex(rdf_file: UploadFile, shex_file: UploadFile, start_shape: str, db: Session = Depends(get_db)):
+async def upload_rdf_shex(rdf_file: UploadFile = File(...), shex_file: UploadFile = File(...), start_shape: str = Form(...), db: Session = Depends(get_db)):
     # Save uploaded files to temp
     with tempfile.NamedTemporaryFile(suffix=".ttl", delete=False) as rdf_temp, tempfile.NamedTemporaryFile(suffix=".shex", delete=False) as shex_temp:
         rdf_bytes = await rdf_file.read()
@@ -39,10 +47,27 @@ async def upload_rdf_shex(rdf_file: UploadFile, shex_file: UploadFile, start_sha
     evaluator = ShExEvaluator(rdf=g, schema=schema_str, start=start_shape)
     results = evaluator.evaluate()
 
-    # gestion de errores
+        # Recolectamos todos los fallos en detalle
+    errores = []
     for r in results:
         if not r.result:
-            raise HTTPException(400, detail=f"ShEx failed on focus {r.focus}: {r.reason}")
+            # 1) Introspección de atributos “públicos”
+            info = {
+                attr: getattr(r, attr)
+                for attr in dir(r)
+                if not attr.startswith("_") and not callable(getattr(r, attr))
+            }
+            errores.append(info)
+
+    if errores:
+        # Devolvemos todos los atributos disponibles para inspección
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "validation_errors": errores,
+                "note": "Mira las keys devueltas para saber qué atributos usar (p.ej. 'shape_label', 'value', etc.)"
+            }
+        )
 
     # You must provide a focus node and a start shape
     # If unknown, we can extract any URI subject from the graph
@@ -54,21 +79,80 @@ async def upload_rdf_shex(rdf_file: UploadFile, shex_file: UploadFile, start_sha
     
     FHIR_PATIENT = URIRef("http://hl7.org/fhir/Patient")
     for subj in g.subjects(RDF.type, FHIR_PATIENT):
-        pid = str(g.value(subj, URIRef("http://hl7.org/fhir/Resource.id")))
-        nombre = str(g.value(subj, URIRef("http://hl7.org/fhir/HumanName.given")))
-        apellido = str(g.value(subj, URIRef("http://hl7.org/fhir/HumanName.family")))
-        genero = Genero(str(g.value(subj, URIRef("http://hl7.org/fhir/Patient.gender"))).upper())
+        pid = None
+        
+        for id_node in g.objects(subj, URIRef("http://hl7.org/fhir/Patient.identifier")):
+            print(f"Procesando identificador: {id_node}")
+            pid = str(g.value(id_node, URIRef("http://hl7.org/fhir/Identifier.value")))
+
+        activo = g.value(subj, URIRef("http://hl7.org/fhir/Patient.active"))
+
+        nombre = apellido = None
+        for name_node in g.objects(subj, URIRef("http://hl7.org/fhir/Patient.name")):
+            nombre  = str(g.value(name_node, URIRef("http://hl7.org/fhir/HumanName.given")))
+            apellido = str(g.value(name_node, URIRef("http://hl7.org/fhir/HumanName.family")))
+        raw_gender = g.value(subj, URIRef("http://hl7.org/fhir/Patient.gender"))
+        genero = parse_enum(
+            Genero,
+            raw_gender,
+            field_name="gender",
+            focus=str(subj)
+        )
+        
+        raw_estado = g.value(subj, URIRef("http://hl7.org/fhir/Patient.maritalStatus"))
+        estado_civil = parse_enum(
+            EstadoCivil,
+            raw_estado,
+            field_name="maritalStatus",
+            focus=str(subj)
+        )
+        telefono = None
+        for telecom_bn in g.objects(subj, URIRef("http://hl7.org/fhir/Patient.telecom")):
+            sistema = g.value(telecom_bn, URIRef("http://hl7.org/fhir/ContactPoint.system"))
+            if sistema and str(sistema).lower() == "phone":
+                valor = g.value(telecom_bn, URIRef("http://hl7.org/fhir/ContactPoint.value"))
+                if valor:
+                    telefono = str(valor)
+            break  # si solo te interesa el primero
+        # Iteramos sobre cada blank node de address (aunque solo usemos la primera)
+        for addr_bn in g.objects(subj, URIRef("http://hl7.org/fhir/Patient.address")):
+            # línea de calle (puede ser múltiple, aquí solo la primera)
+            line = g.value(addr_bn, URIRef("http://hl7.org/fhir/Address.line"))
+            if line:
+                calle = str(line)
+            # ciudad
+            city = g.value(addr_bn, URIRef("http://hl7.org/fhir/Address.city"))
+            if city:
+                ciudad = str(city)
+            # provincia/estado
+            state = g.value(addr_bn,  URIRef("http://hl7.org/fhir/Address.state"))
+            if state:
+                provincia = str(state)
+            # código postal
+            postal = g.value(addr_bn, URIRef("http://hl7.org/fhir/Address.postalCode"))
+            if postal:
+                codigo_postal = str(postal)
+            # país
+            country = g.value(addr_bn, URIRef("http://hl7.org/fhir/Address.country"))
+            if country:
+                pais = str(country)
+            break   # si solo te interesa la primera dirección
         fecha = str(g.value(subj, URIRef("http://hl7.org/fhir/Patient.birthDate")))
+        print(f"Procesando paciente: {pid}, {nombre} {apellido}, género: {genero.value}, fecha de nacimiento: {fecha} activo: {activo}, teléfono: {telefono}, dirección: {calle}, {ciudad}, {provincia}, {codigo_postal}, {pais}, estado civil: {estado_civil.value}")
         paciente = Paciente(
             id=pid,
             nombre=nombre,
             apellido=apellido,
-            genero=genero,
+            genero=genero.value,
             fecha_nacimiento=fecha,
-            activo=True,
-            telefono=None,
-            direccion=None,
-            estado_civil=None
+            activo=bool(activo),
+            telefono=telefono,
+            calle=calle,
+            ciudad=ciudad,
+            provincia=provincia,
+            codigo_postal=codigo_postal,
+            pais=pais,
+            estado_civil=estado_civil.value
         )
         db.merge(paciente)
 
