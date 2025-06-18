@@ -1,12 +1,12 @@
-version: "3.9"
-
 services:
-  web:
+  backend:
     build: .
-    container_name: fastapi_rdf_app
+    container_name: personal_health_backend
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/app                   # aquí va todo tu código (.py, data/, schemas/)
+      - ./requirements.txt:/app/requirements.txt:ro
+      - ./entrypoint.sh:/entrypoint.sh:ro
     ports:
       - "8000:8000"
-    volumes:
-      - .:/app
-    environment:
-      - PYTHONUNBUFFERED=1

@@ -1,18 +1,19 @@
-# Use an official Python base image
-FROM python:3.11-slim
+# Dockerfile
+FROM python:3.10-slim
 
-# Set working directory
+# No escribir archivos .pyc, evitar buffering
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Definimos /app como directorio de trabajo
 WORKDIR /app
 
-# Copy requirements and install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copiamos solo el entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# Copy your FastAPI app code
-COPY . .
+# El entrypoint se encargará de pip install al arrancar
+ENTRYPOINT ["/entrypoint.sh"]
 
-# Expose FastAPI port
-EXPOSE 8000
-
-# Start the FastAPI app
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Comando por defecto: arranca Uvicorn apuntando a main.py
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

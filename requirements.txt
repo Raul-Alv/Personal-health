@@ -4,3 +4,5 @@ rdflib
 pyshex
 pydantic
 python-multipart
+sqlalchemy
+python-dotenv
