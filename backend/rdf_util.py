@@ -2,8 +2,6 @@ from rdflib import Graph, Namespace, Literal, URIRef, RDF
 from typing import List
 from pydantic import BaseModel
 from pyshex import ShExEvaluator
-from models import Paciente, Practicante, Diente, Procedimiento, StatusProcedimiento, Genero
-import re
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -106,31 +104,6 @@ def get_literal(graph: Graph, subject, predicate):
     elif isinstance(value, URIRef):
         return str(value)
     return ""
-
-def parse_enum(enum_cls, raw, field_name: str, focus: str):
-    """
-    _enum_cls_: la clase Enum a usar (p.ej. Genero)
-    _raw_: el valor crudo del graph (puede ser None)
-    _field_name_: nombre del campo (para el mensaje)
-    _focus_: el URI del recurso que estás parseando
-    """
-    if raw is None:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Missing required field `{field_name}` on node {focus}"
-        )
-    val = str(raw)
-    try:
-        return enum_cls(val)
-    except ValueError:
-        allowed = ", ".join([e.value for e in enum_cls])
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"Invalid value `{val}` for `{field_name}` on node {focus}; "
-                f"expected one of [{allowed}]"
-            )
-        )
 
 def extract_start_shape(shex_str: str) -> str | None:
     # Match lines like: start = @<Patient> or start=@<http://hl7.org/fhir/Patient>

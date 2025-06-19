@@ -1,6 +1,8 @@
 fastapi
 uvicorn
 rdflib
+rdflib-sqlalchemy
+SQLAlchemy
 pyshex
 pydantic
 python-multipart
