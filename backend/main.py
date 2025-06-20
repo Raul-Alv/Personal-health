@@ -1,9 +1,14 @@
 import tempfile
-from fastapi import FastAPI, UploadFile, HTTPException, File, Form
+from fastapi import FastAPI, UploadFile, HTTPException, status, File, Form, Depends, Query
+from fastapi.security import OAuth2PasswordBearer
 from pyshex import ShExEvaluator
 from rdf_store import get_graph
+from textwrap import dedent
+from rdf_util import crear_token, verify_password, save_registraion
+from login_funcs import hash_password, verify_password, crear_token, decodificar_token
 
 app = FastAPI()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 g = get_graph()
 
 @app.post("/upload/")
@@ -79,6 +84,64 @@ async def listar_pacientes():
         resultados.append({"uri": str(row.patient), "nombre": str(row.givenName), "apellido": str(row.familyName)})
     return resultados
 
+@app.get("/paciente")
+async def get_paciente(patient_id: str = Query( ..., alias="patient_id",
+                                                   title="ID del paciente",
+                                                   description="ID del paciente a eliminar")):
+    # Verificamos que el paciente existe
+    # 1) Verifica que exista ese sujeto
+    ask_q = dedent(f"""\
+        PREFIX pa: <http://hl7.org/fhir/Patient/>
+        ASK {{
+          pa:{patient_id} ?p ?o .
+        }}
+    """)
+    if not g.query(ask_q).askAnswer:
+        raise HTTPException(status_code=404, detail="Paciente no encontrado")
+    select_q = dedent(f"""\
+        PREFIX pa: <http://hl7.org/fhir/Patient/>
+        SELECT ?p ?o
+        WHERE {{
+            pa:{patient_id} ?p ?o .
+        }}
+    """)
+    resultados = [
+        {"predicado": str(p), "objeto": str(o)}
+        for p, o in g.query(select_q)
+    ]
+    return {"id": patient_id, "tripletas": resultados}
+
+@app.delete("/pacientes/delete")
+async def eliminar_paciente(patient_id: str = Query(
+        ..., 
+        alias="patient_id", 
+        title="ID del paciente",
+        description="UUID o identificador del paciente a eliminar"
+    )):
+    # 1) Verificamos que exista al menos un paciente con ese identifier
+    ask_q = dedent(f"""\
+        PREFIX pa: <http://hl7.org/fhir/Patient/>
+        ASK {{
+            pa:{patient_id} ?p ?o.
+        }}
+    """)
+    if not g.query(ask_q).askAnswer:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No se encontró ningún paciente con ID {patient_id}"
+        )
+
+    # 2) SPARQL UPDATE: borrado explícito en dos fases (DELETE{…} WHERE{…})
+    q = dedent(f"""
+        PREFIX pa: <http://hl7.org/fhir/Patient/>
+        DELETE WHERE {{
+        fhir:{patient_id} ?p ?o .
+        }}
+    """)
+    g.update(q)
+    g.serialize(format="ttl", destination="data/triplestore.db")
+    return {"status": "ok", "message": f"Paciente {patient_id} eliminado."}
+
 @app.get("/procedures/")
 def get_procedures():
     # stubbed
@@ -88,3 +151,82 @@ def get_procedures():
 def get_procedure(procedure_id: str):
     # stubbed
     procedure = [...]
+
+@app.post("/registro/")
+def registrar_usuario(email: str = Form(...), password: str = Form(...), nombre: str = Form(...)):
+    usuario_id = email.split("@")[0]
+    usuario_uri = f"http://example.org/fhir/custom#Usuario/{usuario_id}"
+
+    # Verifica si ya existe con ASK
+    ask_query = dedent(f"""
+        PREFIX ex: <http://example.org/fhir/custom#>
+        ASK {{
+            ?u a ex:Usuario ;
+               ex:email "{email}" .
+        }}
+    """)
+    if g.query(ask_query).askAnswer:
+        raise HTTPException(status_code=400, detail="Usuario ya registrado")
+
+    # Si no existe, lo insertamos
+    hashed = hash_password(password)
+    insert_query = dedent(f"""
+        PREFIX ex: <http://example.org/fhir/custom#>
+        INSERT DATA {{
+            <{usuario_uri}> a ex:Usuario ;
+                ex:nombre "{nombre}" ;
+                ex:email "{email}" ;
+                ex:hashedPassword "{hashed}" .
+        }}
+    """)
+    g.update(insert_query)
+    g.commit()
+    return {"message": "Usuario registrado correctamente"}
+
+@app.post("/login/")
+def login_usuario(email: str = Form(...), password: str = Form(...)):
+    query = dedent(f"""
+        PREFIX ex: <http://example.org/fhir/custom#>
+        SELECT ?usuario ?hashed
+        WHERE {{
+            ?usuario a ex:Usuario ;
+                     ex:email "{email}" ;
+                     ex:hashedPassword ?hashed .
+        }}
+    """)
+    results = list(g.query(query))
+    if not results:
+        raise HTTPException(status_code=401, detail="Usuario no encontrado")
+
+    usuario_uri, stored_hashed = results[0]
+    if not verify_password(password, str(stored_hashed)):
+        raise HTTPException(status_code=401, detail="Contraseña incorrecta")
+
+    token = crear_token(str(usuario_uri))
+    return {"access_token": token, "token_type": "bearer"}
+
+@app.get("/mis_pacientes/")
+def obtener_mis_pacientes(token: str = Depends(oauth2_scheme)):
+    usuario_uri = decodificar_token(token)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+    query = dedent(f"""
+        PREFIX ex: <http://example.org/fhir/custom#>
+        PREFIX fhir: <http://hl7.org/fhir/>
+        SELECT ?paciente ?nombre ?apellido
+        WHERE {{
+            <{usuario_uri}> ex:tienePaciente ?paciente .
+            ?paciente fhir:HumanName.given ?nombre ;
+                      fhir:HumanName.family ?apellido .
+        }}
+    """)
+
+    resultados = []
+    for row in g.query(query):
+        resultados.append({
+            "id": row.paciente.split("/")[-1],
+            "nombre": str(row.nombre),
+            "apellido": str(row.apellido)
+        })
+    return resultados

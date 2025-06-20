@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from pyshex import ShExEvaluator
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from hashlib import sha256
+from login_funcs import hash_password, verify_password, crear_token
 
 FHIR = Namespace("http://hl7.org/fhir/")
 EX = Namespace("http://example.org/fhir/custom#")
@@ -123,3 +125,24 @@ def extract_start_shape(shex_str: str) -> str | None:
                 return prefixes[prefix] + local
         return shape_label  # already a full URI """
     return None
+
+def save_registraion(usuario_uri: URIRef, email: str, nombre: str, password: str, db: Session, g: Graph):
+    usuario_id = email.split("@")[0]
+    usuario_uri = EX[f"Usuario/{usuario_id}"]
+
+    if (usuario_uri, RDF.type, EX.Usuario) in g:
+        raise HTTPException(status_code=400, detail="Usuario ya registrado")
+
+    g.add((usuario_uri, RDF.type, EX.Usuario))
+    g.add((usuario_uri, EX.email, Literal(email)))
+    g.add((usuario_uri, EX.nombre, Literal(nombre)))
+    g.add((usuario_uri, EX.hashedPassword, Literal(hash_password(password))))
+
+def login_usuario(email: str, password: str, g: Graph) -> str:
+    for subj in g.subjects(EX.email, Literal(email)):
+        hashed = g.value(subj, EX.hashedPassword)
+        if hashed and verify_password(password, str(hashed)):
+            token = crear_token(str(subj))
+            return {"access_token": token, "token_type": "bearer"}
+    raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    
