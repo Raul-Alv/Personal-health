@@ -1,7 +1,8 @@
 import tempfile
-from fastapi import FastAPI, UploadFile, HTTPException, status, File, Form, Depends, Query
+from fastapi import Body, FastAPI, UploadFile, HTTPException, status, File, Form, Depends, Query, Request
 from fastapi.security import OAuth2PasswordBearer
 from pyshex import ShExEvaluator
+from rdflib import RDF, Graph, Namespace
 from rdf_store import get_graph
 from textwrap import dedent
 from rdf_util import crear_token, verify_password, save_registraion
@@ -10,9 +11,15 @@ from login_funcs import hash_password, verify_password, crear_token, decodificar
 app = FastAPI()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 g = get_graph()
+FHIR = Namespace("http://hl7.org/fhir/")
+EX = Namespace("http://example.org/fhir/custom#")
 
 @app.post("/upload/")
-async def upload_rdf_shex(rdf_file: UploadFile = File(...), shex_file: UploadFile = File(...), start_shape: str = Form(...)):
+async def upload_rdf_shex(rdf_file: UploadFile = File(...), shex_file: UploadFile = File(...), start_shape: str = Form(...), token: str = Depends(oauth2_scheme)):
+    usuario_uri = decodificar_token(token)
+    print("Usuario URI decodificado:", usuario_uri)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
     # Save uploaded files to temp
     with tempfile.NamedTemporaryFile(suffix=".ttl", delete=False) as rdf_temp, tempfile.NamedTemporaryFile(suffix=".shex", delete=False) as shex_temp:
         rdf_bytes = await rdf_file.read()
@@ -25,13 +32,14 @@ async def upload_rdf_shex(rdf_file: UploadFile = File(...), shex_file: UploadFil
         shex_path = shex_temp.name
 
     # Load the RDF data
-    g.parse(rdf_path, format="ttl")
+    g_temp = Graph()
+    g_temp.parse(rdf_path, format="ttl")
 
     # Decode the ShEx schema from the file
     schema_str = open(shex_path, "r", encoding="utf-8").read()
-    evaluator = ShExEvaluator(rdf=g, schema=schema_str, start=start_shape)
+    evaluator = ShExEvaluator(rdf=g_temp, schema=schema_str, start=start_shape)
     results = evaluator.evaluate()
-
+    
         # Recolectamos todos los fallos en detalle
     errores = []
     for r in results:
@@ -53,6 +61,21 @@ async def upload_rdf_shex(rdf_file: UploadFile = File(...), shex_file: UploadFil
                 "note": "Mira las keys devueltas para saber qué atributos usar (p.ej. 'shape_label', 'value', etc.)"
             }
         )
+    
+    for paciente_uri in g_temp.subjects(RDF.type, FHIR.Patient):
+        print(f"Paciente encontrado: {paciente_uri}")
+        insert_link = f"""
+            PREFIX ex: <{EX}>
+            INSERT DATA {{
+                <{usuario_uri}> ex:tienePaciente <{paciente_uri}> .
+            }}
+        """
+        g.update(insert_link)
+
+    # ✅ Unir el RDF subido al grafo persistente
+    for triple in g_temp:
+        g.add(triple)
+
     g.commit()  # Persistimos los cambios en el grafo
     return {"status": "ok", "triples": len(g)}
 
@@ -205,12 +228,14 @@ def login_usuario(email: str = Form(...), password: str = Form(...)):
     token = crear_token(str(usuario_uri))
     return {"access_token": token, "token_type": "bearer"}
 
+
+
 @app.get("/mis_pacientes/")
 def obtener_mis_pacientes(token: str = Depends(oauth2_scheme)):
     usuario_uri = decodificar_token(token)
     if not usuario_uri:
         raise HTTPException(status_code=401, detail="Token inválido")
-
+    print("Usuario URI decodificado:", usuario_uri)
     query = dedent(f"""
         PREFIX ex: <http://example.org/fhir/custom#>
         PREFIX fhir: <http://hl7.org/fhir/>
@@ -230,3 +255,38 @@ def obtener_mis_pacientes(token: str = Depends(oauth2_scheme)):
             "apellido": str(row.apellido)
         })
     return resultados
+
+@app.post("/asociar_paciente/")
+def asociar_paciente(patient_id: str = Form(...), token: str = Depends(oauth2_scheme)):
+    usuario_uri = decodificar_token(token)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+    paciente_uri = f"http://hl7.org/fhir/Patient/{patient_id}"
+
+    insert = f"""
+        PREFIX ex: <http://example.org/fhir/custom#>
+        PREFIX fhir: <http://hl7.org/fhir/>
+        INSERT DATA {{
+            <{usuario_uri}> ex:tienePaciente <{paciente_uri}> .
+        }}
+    """
+    g.update(insert)
+    g.commit()
+    return {"message": f"Paciente {patient_id} vinculado a {usuario_uri}"}
+
+@app.post("/query/")
+async def ejecutar_query(sparql: str = Body(..., media_type="text/plain"), token: str = Depends(oauth2_scheme)):
+    usuario_uri = decodificar_token(token)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    try:
+        result = g.query(sparql)
+        return {
+            "result": [
+                {str(var): str(row[var]) for var in row.labels}
+                for row in result
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
