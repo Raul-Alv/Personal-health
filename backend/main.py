@@ -1,8 +1,9 @@
 import tempfile
-from fastapi import Body, FastAPI, UploadFile, HTTPException, status, File, Form, Depends, Query, Request
+from fastapi import Body, FastAPI, UploadFile, HTTPException, status, File, Form, Depends, Query, Request, Response
 from fastapi.security import OAuth2PasswordBearer
 from pyshex import ShExEvaluator
 from rdflib import RDF, Graph, Namespace
+from rdflib.query import Result
 from rdf_store import get_graph
 from textwrap import dedent
 from rdf_util import crear_token, verify_password, save_registraion
@@ -35,13 +36,26 @@ async def upload_rdf_shex(rdf_file: UploadFile = File(...), shex_file: UploadFil
     g_temp = Graph()
     g_temp.parse(rdf_path, format="ttl")
 
+    errores = []
+
     # Decode the ShEx schema from the file
     schema_str = open(shex_path, "r", encoding="utf-8").read()
-    evaluator = ShExEvaluator(rdf=g_temp, schema=schema_str, start=start_shape)
-    results = evaluator.evaluate()
+    evaluator = ShExEvaluator(rdf=g_temp, schema=schema_str)
+
+    for pac in g_temp.subjects(RDF.type, FHIR.Patient):
+        results = evaluator.evaluate(start="PatientShape", focus=str(pac))
+        for r in results:
+            if not r.result:
+                errores.append(r)
     
-        # Recolectamos todos los fallos en detalle
-    errores = []
+    for proc in g_temp.subjects(RDF.type, FHIR.Procedure):
+        results = evaluator.evaluate(start="ProcedureShape", focus=str(proc))
+        for r in results:
+            if not r.result:
+                errores.append(r)
+    
+    # Recolectamos todos los fallos en detalle
+    
     for r in results:
         if not r.result:
             # 1) Introspección de atributos “públicos”
@@ -61,16 +75,43 @@ async def upload_rdf_shex(rdf_file: UploadFile = File(...), shex_file: UploadFil
                 "note": "Mira las keys devueltas para saber qué atributos usar (p.ej. 'shape_label', 'value', etc.)"
             }
         )
-    
-    for paciente_uri in g_temp.subjects(RDF.type, FHIR.Patient):
-        print(f"Paciente encontrado: {paciente_uri}")
-        insert_link = f"""
-            PREFIX ex: <{EX}>
-            INSERT DATA {{
-                <{usuario_uri}> ex:tienePaciente <{paciente_uri}> .
-            }}
+    paciente_uri = next(g_temp.subjects(RDF.type, FHIR.Patient))
+    patient_triples = []
+    for s, p, o in g_temp.triples((paciente_uri, None, None)):
+        patient_triples.append(f"{s.n3()} {p.n3()} {o.n3()} .")
+    nt_patient = "\n".join(patient_triples)
+    print("Patient triples:", nt_patient)
+    insert_patient = f"""
+        PREFIX fhir: <{FHIR}>
+        INSERT DATA {{
+            {nt_patient}
+        }}
+    """
+    g.update(insert_patient)
+
+
+    proc_triples = []
+    for proc_uri in g_temp.subjects(RDF.type, FHIR.Procedure):
+        for s, p, o in g_temp.triples((proc_uri, None, None)):
+            proc_triples.append(f"{s.n3()} {p.n3()} {o.n3()} .")
+    nt_procs = "\n".join(proc_triples)
+
+    insert_procs = f"""
+        PREFIX fhir: <{FHIR}>
+        INSERT DATA {{
+            {nt_procs}
+        }}
         """
-        g.update(insert_link)
+    g.update(insert_procs)
+
+    
+    insert_link = f"""
+        PREFIX ex: <{EX}>
+        INSERT DATA {{
+            <{usuario_uri}> ex:tienePaciente <{paciente_uri}> .
+        }}
+    """
+    g.update(insert_link)
 
     # ✅ Unir el RDF subido al grafo persistente
     for triple in g_temp:
@@ -158,7 +199,7 @@ async def eliminar_paciente(patient_id: str = Query(
     q = dedent(f"""
         PREFIX pa: <http://hl7.org/fhir/Patient/>
         DELETE WHERE {{
-        fhir:{patient_id} ?p ?o .
+        pa:{patient_id} ?p ?o .
         }}
     """)
     g.update(q)
@@ -256,6 +297,61 @@ def obtener_mis_pacientes(token: str = Depends(oauth2_scheme)):
         })
     return resultados
 
+@app.get("/mis_pacientes/{patient_id}/procedimientos")
+def obtener_procedimientos_paciente(patient_id: str, token: str = Depends(oauth2_scheme)):
+    usuario_uri = decodificar_token(token)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    paciente_uri = f"http://hl7.org/fhir/Patient/{patient_id}" 
+    print("Paciente URI:", paciente_uri)
+    print("Usuario URI:", usuario_uri)
+    print("Patient ID:", patient_id)
+    query = dedent(f"""
+        PREFIX ex:   <http://example.org/fhir/custom#>
+        PREFIX fhir: <http://hl7.org/fhir/>
+        PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+        SELECT 
+        ?patient
+        ?code 
+        ?performedDateTime 
+        ?performerURI 
+        ?status 
+        ?patientID
+
+        WHERE {{
+            <{usuario_uri}> ex:tienePaciente ?patient .
+            ?proc a                            fhir:Procedure ;
+                fhir:Procedure.code         ?cc ;
+                fhir:Procedure.performedDateTime ?performedDateTime ;
+                fhir:Procedure.status       ?status ;
+                fhir:Procedure.performer      ?perfNode .
+
+
+            ?coding fhir:CodeableConcept.coding ?cd ;
+                fhir:CodeableConcept.text ?text .
+            ?cd fhir:Coding.code ?code;
+                fhir:Coding.system ?system .
+
+            ?perfNode fhir:Procedure.performer.actor  ?actorNode .
+            ?actorNode fhir:Reference.reference       ?refNode .
+            ?refNode  fhir:value                      ?performerValue . 
+        }}
+
+        ORDER BY ?patient ?performedDateTime
+    """)
+    resultados = []
+    for row in g.query(query):
+        resultados.append({
+            "patient": str(row.patient),
+            "code": str(row.code),
+            "performedDateTime": str(row.performedDateTime),
+            "performerURI": str(row.performerURI),
+            "status": str(row.status),
+            "patientID": str(row.patientID)
+        })
+    return resultados
+
 @app.post("/asociar_paciente/")
 def asociar_paciente(patient_id: str = Form(...), token: str = Depends(oauth2_scheme)):
     usuario_uri = decodificar_token(token)
@@ -277,16 +373,47 @@ def asociar_paciente(patient_id: str = Form(...), token: str = Depends(oauth2_sc
 
 @app.post("/query/")
 async def ejecutar_query(sparql: str = Body(..., media_type="text/plain"), token: str = Depends(oauth2_scheme)):
+    # 1) Autorización
     usuario_uri = decodificar_token(token)
     if not usuario_uri:
         raise HTTPException(status_code=401, detail="Token inválido")
+
+    # 2) Ejecutamos la query
     try:
-        result = g.query(sparql)
-        return {
-            "result": [
-                {str(var): str(row[var]) for var in row.labels}
-                for row in result
-            ]
-        }
+        resultado = g.query(sparql)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    # 3) Si es un Graph (CONSTRUCT o DESCRIBE)
+    if isinstance(resultado, Graph):
+        turtle = resultado.serialize(format="turtle")
+        return Response(content=turtle, media_type="text/turtle")
+
+    # 4) Si es un Result (SELECT o ASK)
+    if isinstance(resultado, Result):
+        # RDFlib usa `.vars` no `.labels`
+        # Y tiene un serializador para SPARQL-JSON tras forzar la importación:
+        import rdflib.plugins.sparql.results.jsonresults
+        sparql_json = resultado.serialize(format="json")
+        return Response(content=sparql_json, media_type="application/sparql-results+json")
+
+    # 5) Fallback: no debería llegar aquí
+    return Response(status_code=204)
+
+@app.delete("/graph/clear", status_code=200)
+async def clear_graph():
+    try:
+        # Ejecuta un SPARQL UPDATE para limpiar el grafo
+        # Dependiendo del backend puede ser CLEAR DEFAULT o CLEAR GRAPH <tu-graph-uri>
+        g.update("CLEAR DEFAULT")
+        g.commit()
+        return {
+            "status": "ok",
+            "message": "Grafo vaciado vía SPARQL UPDATE.",
+            "triples_restantes": len(g)
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al limpiar el grafo: {e}"
+        )
