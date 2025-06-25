@@ -1,4 +1,4 @@
-from rdflib import Graph, Namespace, Literal, URIRef, RDF
+from rdflib import Graph, Namespace, Literal, URIRef, RDF, BNode
 from typing import List
 from pydantic import BaseModel
 from pyshex import ShExEvaluator
@@ -145,4 +145,14 @@ def login_usuario(email: str, password: str, g: Graph) -> str:
             token = crear_token(str(subj))
             return {"access_token": token, "token_type": "bearer"}
     raise HTTPException(status_code=401, detail="Credenciales inválidas")
+
+def copy_subgraph(subject, source: Graph, target_ctx):
+    """
+    Copia todas las triples cuyo sujeto sea 'subject' desde 'source' al contexto 'target_ctx',
+    y recursivamente desciende en los objetos que sean BNode.
+    """
+    for p, o in source.predicate_objects(subject):
+        target_ctx.add((subject, p, o))
+        if isinstance(o, BNode):
+            copy_subgraph(o, source, target_ctx)
     

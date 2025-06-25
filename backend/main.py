@@ -7,7 +7,7 @@ from rdflib import RDF, Graph, Namespace, URIRef
 from rdflib.query import Result
 from rdf_store import  PATIENTS_GRAPH_ID, PROCEDURES_GRAPH_ID, USERS_GRAPH_ID, get_store, get_user_graph, get_patient_graph, get_procedure_graph
 from textwrap import dedent
-from rdf_util import crear_token, verify_password, save_registraion
+from rdf_util import copy_subgraph, crear_token, verify_password, save_registraion
 from login_funcs import hash_password, verify_password, crear_token, decodificar_token
 
 app = FastAPI()
@@ -54,22 +54,14 @@ async def upload_rdf_shex(rdf_file: UploadFile = File(...), shex_file: UploadFil
     if errores:
         raise HTTPException(status_code=400, detail={"validation_errors": errores})
     
-    # Distribuir triples a cada grafo
-    # 1) Prepara dos conjuntos con los sujetos de cada tipo
-    pacientes = set(g_temp.subjects(RDF.type, FHIR.Patient))
-    procedimientos = set(g_temp.subjects(RDF.type, FHIR.Procedure))
+    # 1) Copiar pacientes completos, incluídos blank nodes
+    for subj in g_temp.subjects(RDF.type, FHIR.Patient):
+        copy_subgraph(subj, g_temp, g_patient)
 
-    # 2) Recorre todas las triples y asigna según el sujeto
-    for s, p, o in g_temp.triples((None, None, None)):
-        if s in pacientes:
-            print(f"-> Paciente {s}: añadiendo ({s},{p},{o}) al grafo 'pacientes'")
-            g_patient.add((s, p, o))
-        elif s in procedimientos:
-            print(f"-> Procedimiento {s}: añadiendo ({s},{p},{o}) al grafo 'procedimientos'")
-            g_procedure.add((s, p, o))
-        else:
-            # opcional: si quieres depurar qué triples se están quedando fuera
-            print(f"-> Ningún grafo para ({s},{p},{o})")
+    # 2) Copiar procedimientos completos, incluídos blank nodes
+    for subj in g_temp.subjects(RDF.type, FHIR.Procedure):
+        copy_subgraph(subj, g_temp, g_procedure)
+
 
     # Asociar usuario -> paciente
     paciente_uri = next(g_temp.subjects(RDF.type, FHIR.Patient), None)
@@ -268,39 +260,65 @@ def obtener_procedimientos_paciente(patient_id: str, token: str = Depends(oauth2
     """)
     if not g_user.query(ask_link).askAnswer:
         raise HTTPException(status_code=403, detail="No autorizado o sin vinculación")
-
+    else:
+        print(f"Usuario {usuario_uri} tiene acceso al paciente {paciente_uri}")
     # 3) SPARQL para obtener todos los triples de cada Procedure que apunte al paciente
-    q = dedent(f"""
-        PREFIX fhir: <http://hl7.org/fhir/>
-        SELECT ?proc ?pred ?obj
-        WHERE {{
-          GRAPH <urn:app_salud:procedimientos> {{
-            ?proc a fhir:Procedure ;
-                  fhir:Procedure.subject <{paciente_uri}> .
-            ?proc ?pred ?obj .
-          }}
-        }}
-        ORDER BY ?proc ?pred
-    """)
-    resultados = g_procedure.query(q)
+    id_consulta = paciente_uri.partition("Patient/")[1] + paciente_uri.partition("Patient/")[2]
+    sparql = dedent(f"""
+      PREFIX fhir: <http://hl7.org/fhir/>
 
-    # 4) Agrupar por URI de procedimiento
-    detalles = defaultdict(list)
-    for row in resultados:
-        proc_uri = str(row.proc)
-        detalles[proc_uri].append({
-            "predicado": str(row.pred),
-            "valor": str(row.obj)
+      SELECT 
+        ?proc
+        ?code
+        ?text
+        ?status
+        ?performedDateTime
+        ?performerRef
+      FROM <urn:app_salud:procedimientos>
+      WHERE {{
+        # match sólo si el subject apunta, tras dos blank-nodes, al literal "Patient/{patient_id}"
+        ?proc a fhir:Procedure ;
+            fhir:Procedure.subject
+                / fhir:Reference.reference
+                / fhir:value
+                "{id_consulta}" .
+
+          
+        ?proc fhir:Procedure.code
+                / fhir:CodeableConcept.coding
+                / fhir:Coding.code ?code .
+        ?proc fhir:Procedure.code
+                / fhir:CodeableConcept.text ?text .
+          
+        ?proc fhir:Procedure.status ?status .
+        ?proc fhir:Procedure.performedDateTime ?performedDateTime .
+        
+        ?proc fhir:Procedure.performer
+                / fhir:Procedure.performer.actor
+                / fhir:Reference.reference
+                / fhir:value
+                ?performerRef .
+          
+      }}
+      ORDER BY ?proc
+    """)
+    # 3) Ejecutar la consulta sobre el ConjunctiveGraph
+    results = store.query(sparql)
+
+    # 4) Formatear en JSON
+    procedimientos = []
+    for row in results:
+        procedimientos.append({
+            "procedure_uri":     str(row.proc),
+            "code":              str(row.code)              if row.code              else None,
+            "text":              str(row.text)              if row.text              else None,
+            "status":            str(row.status)            if row.status            else None,
+            "performedDateTime": str(row.performedDateTime) if row.performedDateTime else None,
+            "performerRef":      str(row.performerRef)      if row.performerRef      else None,
         })
 
-    # 5) Formatear respuesta
-    return [
-        {
-            "procedure_uri": uri,
-            "atributos": attrs
-        }
-        for uri, attrs in detalles.items()
-    ]
+    return procedimientos
+
 
 @app.post("/asociar_paciente/")
 def asociar_paciente(patient_id: str = Form(...), token: str = Depends(oauth2_scheme)):
@@ -320,7 +338,7 @@ async def ejecutar_query(sparql: str = Body(..., media_type="text/plain"), token
         raise HTTPException(status_code=401, detail="Token inválido")
     try:
         stmt = sparql.strip().lower()
-        if stmt.startswith(("select", "ask")):
+        if stmt.startswith(("select", "ask", "construct", "describe", "prefix")):
             resultado = store.query(sparql)
         else:
             resultado = store.update(sparql)
