@@ -46,20 +46,42 @@ async def upload_rdf_shex(rdf_file: UploadFile = File(...), shex_file: UploadFil
     evaluator = ShExEvaluator(rdf=g_temp, schema=schema_str)
 
     errores = []
-    for cls, shape in [(FHIR.Patient, "PatientShape"), (FHIR.Procedure, "ProcedureShape")]:
-        for subj in g_temp.subjects(RDF.type, cls):
-            for r in evaluator.evaluate(start=shape, focus=str(subj)):
-                if not r.result:
-                    errores.append({"focus": r.focus, "shape": r.shape_label, "message": r.message})
+    for pac in g_temp.subjects(RDF.type, FHIR.Patient):
+        results = evaluator.evaluate(start="PatientShape", focus=str(pac))
+        for r in results:
+            if not r.result:
+                errores.append({
+                    "focus": str(r.focus),
+                    "shape": r.start,       # en lugar de r.shape_label
+                    "reason": r.reason      # en lugar de r.message
+                })
+
+    for proc in g_temp.subjects(RDF.type, FHIR.Procedure):
+        results = evaluator.evaluate(start="ProcedureShape", focus=str(proc))
+        for r in results:
+            if not r.result:
+                errores.append({
+                    "focus": str(r.focus),
+                    "shape": r.start,
+                    "reason": r.reason
+                })
+
     if errores:
-        raise HTTPException(status_code=400, detail={"validation_errors": errores})
-    
+        raise HTTPException(
+            status_code=400,
+            detail={"validation_errors": errores}
+        )
+        
     # 1) Copiar pacientes completos, incluídos blank nodes
     for subj in g_temp.subjects(RDF.type, FHIR.Patient):
+        if (subj, RDF.type, FHIR.Patient) in g_patient:
+            continue
         copy_subgraph(subj, g_temp, g_patient)
 
     # 2) Copiar procedimientos completos, incluídos blank nodes
     for subj in g_temp.subjects(RDF.type, FHIR.Procedure):
+        if (subj, RDF.type, FHIR.Procedure) in g_procedure:
+            continue
         copy_subgraph(subj, g_temp, g_procedure)
 
 
@@ -286,12 +308,16 @@ def obtener_procedimientos_paciente(patient_id: str, token: str = Depends(oauth2
           
         ?proc fhir:Procedure.code
                 / fhir:CodeableConcept.coding
-                / fhir:Coding.code ?code .
+                / fhir:Coding.code 
+                /fhir:value ?code .
         ?proc fhir:Procedure.code
-                / fhir:CodeableConcept.text ?text .
+                / fhir:CodeableConcept.text 
+                / fhir:value ?text .
           
-        ?proc fhir:Procedure.status ?status .
-        ?proc fhir:Procedure.performedDateTime ?performedDateTime .
+        ?proc fhir:Procedure.status 
+                /fhir:value ?status .
+        ?proc fhir:Procedure.performedDateTime 
+                /fhir:value ?performedDateTime .
         
         ?proc fhir:Procedure.performer
                 / fhir:Procedure.performer.actor
