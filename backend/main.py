@@ -1,14 +1,15 @@
-from collections import defaultdict
 import tempfile
 from fastapi import Body, FastAPI, UploadFile, HTTPException, status, File, Form, Depends, Query, Request, Response
 from fastapi.security import OAuth2PasswordBearer
 from pyshex import ShExEvaluator
-from rdflib import RDF, Graph, Namespace, URIRef
+from rdflib import RDF, Graph, Namespace, URIRef, ConjunctiveGraph
 from rdflib.query import Result
 from rdf_store import  PATIENTS_GRAPH_ID, PROCEDURES_GRAPH_ID, USERS_GRAPH_ID, get_store, get_user_graph, get_patient_graph, get_procedure_graph
 from textwrap import dedent
 from rdf_util import copy_subgraph, crear_token, verify_password, save_registraion
 from login_funcs import hash_password, verify_password, crear_token, decodificar_token
+import io
+import zipfile
 
 app = FastAPI()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -344,6 +345,74 @@ def obtener_procedimientos_paciente(patient_id: str, token: str = Depends(oauth2
         })
 
     return procedimientos
+
+@app.get("/export/{patient_id}")
+def export_patient_data(patient_id: str, token: str = Depends(oauth2_scheme)):
+    """
+    Exporta los datos de un paciente y sus procedimientos en un ZIP: Turtle + ShEx.
+    Requiere token válido y que el usuario esté vinculado al paciente.
+    """
+    # 1. Validar token y obtener URI de usuario
+    usuario_uri = decodificar_token(token)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+    # 2. Verificar vínculo usuario -> paciente con SPARQL ASK
+    paciente_uri = URIRef(f"{FHIR}Patient/{patient_id}")
+    ask_q = f"""
+    PREFIX ex: <{EX}>
+    ASK {{ <{usuario_uri}> ex:tienePaciente <{paciente_uri}> . }}
+    """
+    if not g_user.query(ask_q).askAnswer:
+        raise HTTPException(status_code=403, detail="Acceso denegado al paciente.")
+
+    # 3. Construir grafo de exportación con paciente
+    export_graph = Graph()
+    copy_subgraph(paciente_uri, g_patient, export_graph)
+    #print(f"Exportando datos del paciente {patient_id}...")
+    # 4. Consultar procedimientos asociados y copiar subgrafos
+    proc_q = f"""
+    PREFIX fhir: <{FHIR}>
+    SELECT DISTINCT ?proc WHERE {{
+        ?proc a fhir:Procedure ;
+                fhir:Procedure.subject / fhir:Reference.reference / fhir:value "Patient/{patient_id}" .
+    }}
+    """
+    result = g_procedure.query(proc_q)
+    print(f"Procedimientos asociados al paciente {patient_id}: {len(result)} encontrados.")
+    for row in result:
+        print(f"Copiando procedimiento {row.proc}...")
+        copy_subgraph(row.proc, g_procedure, export_graph)
+
+    if len(export_graph) == 0:
+        raise HTTPException(status_code=404, detail="Paciente no encontrado o sin datos.")
+
+    # 5. Serializar a Turtle
+    export_graph.namespace_manager.bind("fhir", FHIR, override=True)
+    turtle_data = export_graph.serialize(format="turtle")
+
+    # 6. Cargar esquema ShEx estático
+    schema_path = "schemas/exports/paciente_proc_schema.shex"
+    try:
+        with open(schema_path, "r", encoding="utf-8") as f:
+            shex_schema = f.read()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error leyendo el esquema ShEx: {e}")
+
+    # 7. Empaquetar en ZIP y devolver
+    mem = io.BytesIO()
+    with zipfile.ZipFile(mem, mode="w") as zf:
+        zf.writestr(f"{patient_id}.ttl", turtle_data)
+        zf.writestr(f"{patient_id}.shex", shex_schema)
+    mem.seek(0)
+
+    return Response(
+        content=mem.read(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename=export_{patient_id}.zip"}
+    )
+
+
 
 
 @app.post("/asociar_paciente/")
