@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 from pyshex import ShExEvaluator
 from rdflib import RDF, Graph, Namespace, URIRef, ConjunctiveGraph
 from rdflib.query import Result
-from rdf_store import  PATIENTS_GRAPH_ID, PROCEDURES_GRAPH_ID, USERS_GRAPH_ID, get_store, get_user_graph, get_patient_graph, get_procedure_graph
+from rdf_store import  ALERGIAS_GRAPH_ID, PATIENTS_GRAPH_ID, PROCEDURES_GRAPH_ID, USERS_GRAPH_ID, get_allergy_graph, get_store, get_user_graph, get_patient_graph, get_procedure_graph
 from textwrap import dedent
 from rdf_util import copy_subgraph, crear_token, verify_password, save_registraion
 from login_funcs import hash_password, verify_password, crear_token, decodificar_token
@@ -18,6 +18,7 @@ store = get_store()
 g_user      = get_user_graph()
 g_patient   = get_patient_graph()
 g_procedure = get_procedure_graph()
+g_allergy  = get_allergy_graph()
 
 FHIR = Namespace("http://hl7.org/fhir/")
 EX = Namespace("http://example.org/fhir/custom#")
@@ -67,6 +68,16 @@ async def upload_rdf_shex(rdf_file: UploadFile = File(...), shex_file: UploadFil
                     "reason": r.reason
                 })
 
+    for alergia in g_temp.subjects(RDF.type, FHIR.AllergyIntolerance):
+        results = evaluator.evaluate(start="AllergyIntoleranceShape", focus=str(alergia))
+        for r in results:
+            if not r.result:
+                errores.append({
+                    "focus": str(r.focus),
+                    "shape": r.start,
+                    "reason": r.reason
+                })
+
     if errores:
         raise HTTPException(
             status_code=400,
@@ -85,6 +96,11 @@ async def upload_rdf_shex(rdf_file: UploadFile = File(...), shex_file: UploadFil
             continue
         copy_subgraph(subj, g_temp, g_procedure)
 
+    # 3) Copiar alergias completas, incluídos blank nodes
+    for subj in g_temp.subjects(RDF.type, FHIR.AllergyIntolerance):
+        if (subj, RDF.type, FHIR.AllergyIntolerance) in g_allergy:
+            continue
+        copy_subgraph(subj, g_temp, g_allergy)
 
     # Asociar usuario -> paciente
     paciente_uri = next(g_temp.subjects(RDF.type, FHIR.Patient), None)
@@ -95,6 +111,7 @@ async def upload_rdf_shex(rdf_file: UploadFile = File(...), shex_file: UploadFil
     g_user.commit()
     g_patient.commit()
     g_procedure.commit()
+    g_allergy.commit()
     store.commit()
 
     n_pac = sum(1 for _ in store.triples((None, None, None), context=g_patient.identifier))
@@ -346,7 +363,91 @@ def obtener_procedimientos_paciente(patient_id: str, token: str = Depends(oauth2
 
     return procedimientos
 
-@app.get("/export/{patient_id}")
+@app.get("/mis_pacientes/{patient_id}/alergias")
+def obtener_alergias_paciente(patient_id: str, token: str = Depends(oauth2_scheme)):
+    # 1) Decodificar y validar token
+    usuario_uri = decodificar_token(token)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+    # 2) URI del paciente y verificación de vínculo en grafo de usuarios
+    paciente_uri = URIRef(f"http://hl7.org/fhir/Patient/{patient_id}")
+    ask_link = dedent(f"""
+        PREFIX ex: <http://example.org/fhir/custom#>
+        ASK {{ <{usuario_uri}> ex:tienePaciente <{paciente_uri}> . }}
+    """)
+    if not g_user.query(ask_link).askAnswer:
+        raise HTTPException(status_code=403, detail="No autorizado o sin vinculación")
+    else:
+        print(f"Usuario {usuario_uri} tiene acceso al paciente {paciente_uri}")
+    # 3) SPARQL para obtener todos los triples de cada Procedure que apunte al paciente
+    id_consulta = paciente_uri.partition("Patient/")[1] + paciente_uri.partition("Patient/")[2]
+    sparql = dedent(f"""
+      PREFIX fhir: <http://hl7.org/fhir/>
+
+      SELECT 
+        ?alergia
+        ?display
+        ?code
+        ?status
+        ?onsetDateTime
+        ?performerRef
+        ?category
+      FROM <urn:app_salud:alergias>
+      WHERE {{ 
+        ?alergia a fhir:AllergyIntolerance ;
+            fhir:AllergyIntolerance.patient
+                / fhir:Reference.reference
+                / fhir:value
+                "{id_consulta}" .
+
+          
+        ?alergia fhir:AllergyIntolerance.code
+                / fhir:CodeableConcept.coding
+                / fhir:Coding.code 
+                /fhir:value ?code .
+
+        ?alergia fhir:AllergyIntolerance.code
+                / fhir:CodeableConcept.coding 
+                / fhir:Coding.display
+                / fhir:value ?display .
+          
+        ?alergia fhir:AllergyIntolerance.clinicalStatus
+                / fhir:CodeableConcept.coding
+                / fhir:Coding.code 
+                / fhir:value ?status .
+
+        ?alergia fhir:AllergyIntolerance.onsetDateTime
+                / fhir:value ?onsetDateTime . 
+        
+        ?alergia fhir:AllergyIntolerance.actor
+                / fhir:Reference.reference
+                / fhir:value ?performerRef .
+        
+        ?alergia fhir:AllergyIntolerance.category
+                / fhir:value ?category .
+          
+      }}
+      ORDER BY ?alergia
+    """)
+    # 3) Ejecutar la consulta sobre el ConjunctiveGraph
+    results = store.query(sparql)
+    # 4) Formatear en JSON
+    alergias = []
+    for row in results:
+        alergias.append({
+            "alergia_uri":     str(row.alergia),
+            "display":         str(row.display)           if row.display           else None,
+            "code":            str(row.code)              if row.code              else None,
+            "status":          str(row.status)            if row.status            else None,
+            "onsetDateTime":   str(row.onsetDateTime)     if row.onsetDateTime     else None,
+            "performerRef":    str(row.performerRef)      if row.performerRef      else None,
+            "category":        str(row.category)          if row.category          else None,
+        })
+
+    return alergias
+
+@app.get("/export_all/{patient_id}")
 def export_patient_data(patient_id: str, token: str = Depends(oauth2_scheme)):
     """
     Exporta los datos de un paciente y sus procedimientos en un ZIP: Turtle + ShEx.
@@ -384,6 +485,21 @@ def export_patient_data(patient_id: str, token: str = Depends(oauth2_scheme)):
         print(f"Copiando procedimiento {row.proc}...")
         copy_subgraph(row.proc, g_procedure, export_graph)
 
+    alergias_q = f"""
+    PREFIX fhir: <{FHIR}>
+    SELECT DISTINCT ?alergia WHERE {{
+        ?alergia a fhir:AllergyIntolerance ;
+            fhir:AllergyIntolerance.patient 
+                / fhir:Reference.reference 
+                l / fhir:value "Patient/{patient_id}" .
+    }}
+    """
+    result = g_allergy.query(alergias_q)
+    print(f"Alergias asociadas al paciente {patient_id}: {len(result)} encontradas.")
+    for row in result:
+        print(f"Copiando alergia {row.alergia}...")
+        copy_subgraph(row.alergia, g_allergy, export_graph)
+
     if len(export_graph) == 0:
         raise HTTPException(status_code=404, detail="Paciente no encontrado o sin datos.")
 
@@ -411,9 +527,6 @@ def export_patient_data(patient_id: str, token: str = Depends(oauth2_scheme)):
         media_type="application/zip",
         headers={"Content-Disposition": f"attachment; filename=export_{patient_id}.zip"}
     )
-
-
-
 
 @app.post("/asociar_paciente/")
 def asociar_paciente(patient_id: str = Form(...), token: str = Depends(oauth2_scheme)):
@@ -458,6 +571,10 @@ async def clear_graph():
 
         g_user.update("CLEAR DEFAULT")
         g_user.commit()
+
+        g_allergy.update("CLEAR DEFAULT")
+        g_allergy.commit()
+        
         return {
             "status": "ok",
             "message": "Grafo vaciado vía SPARQL UPDATE.",
@@ -475,7 +592,8 @@ def list_all_triples():
     graphs = {
         "usuarios": USERS_GRAPH_ID,
         "pacientes": PATIENTS_GRAPH_ID,
-        "procedimientos": PROCEDURES_GRAPH_ID
+        "procedimientos": PROCEDURES_GRAPH_ID,
+        "alergias": ALERGIAS_GRAPH_ID
     }
     output = []
     for name, graph_id in graphs.items():
@@ -488,3 +606,5 @@ def list_all_triples():
                 "objeto": str(o)
             })
     return output
+
+

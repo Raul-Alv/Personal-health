@@ -7,6 +7,7 @@ DATABASE_URL = "sqlite:///data/triplestore.db"
 USERS_GRAPH_ID = URIRef("urn:app_salud:usuarios")
 PATIENTS_GRAPH_ID    = URIRef("urn:app_salud:pacientes")
 PROCEDURES_GRAPH_ID = URIRef("urn:app_salud:procedimientos")
+ALERGIAS_GRAPH_ID = URIRef("urn:app_salud:alergias")
 
 # Creamos/abrimos el grafo persistido
 g = ConjunctiveGraph('SQLAlchemy')
@@ -31,3 +32,6 @@ def get_patient_graph() -> ConjunctiveGraph:
 
 def get_procedure_graph() -> ConjunctiveGraph:
     return store.get_context(PROCEDURES_GRAPH_ID)
+
+def get_allergy_graph() -> ConjunctiveGraph:
+    return store.get_context(ALERGIAS_GRAPH_ID)
