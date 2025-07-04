@@ -2,7 +2,7 @@ import tempfile
 from fastapi import Body, FastAPI, UploadFile, HTTPException, status, File, Form, Depends, Query, Request, Response
 from fastapi.security import OAuth2PasswordBearer
 from pyshex import ShExEvaluator
-from rdflib import RDF, Graph, Namespace, URIRef, ConjunctiveGraph
+from rdflib import RDF, XSD, BNode, Graph, Literal, Namespace, URIRef, ConjunctiveGraph
 from rdflib.query import Result
 from rdf_store import  ALERGIAS_GRAPH_ID, PATIENTS_GRAPH_ID, PROCEDURES_GRAPH_ID, USERS_GRAPH_ID, get_allergy_graph, get_store, get_user_graph, get_patient_graph, get_procedure_graph
 from textwrap import dedent
@@ -285,7 +285,7 @@ def obtener_mis_pacientes(token: str = Depends(oauth2_scheme)):
         pacientes.append(info)
     return pacientes
 
-@app.get("/mis_pacientes/{patient_id}/procedimientos")
+@app.get("/mis_pacientes/{patient_id}/get/procedimientos")
 def obtener_procedimientos_paciente(patient_id: str, token: str = Depends(oauth2_scheme)):
      # 1) Decodificar y validar token
     usuario_uri = decodificar_token(token)
@@ -363,7 +363,7 @@ def obtener_procedimientos_paciente(patient_id: str, token: str = Depends(oauth2
 
     return procedimientos
 
-@app.get("/mis_pacientes/{patient_id}/alergias")
+@app.get("/mis_pacientes/{patient_id}/get/alergias")
 def obtener_alergias_paciente(patient_id: str, token: str = Depends(oauth2_scheme)):
     # 1) Decodificar y validar token
     usuario_uri = decodificar_token(token)
@@ -607,4 +607,45 @@ def list_all_triples():
             })
     return output
 
+@app.patch("/mis_pacientes/{patient_id}/actualizar")
+async def update_patient(
+    patient_id: str,
+    update: str = Body(...),
+    token: str = Depends(oauth2_scheme)):
 
+    usuario_uri = decodificar_token(token)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    paciente_uri = URIRef(f"http://hl7.org/fhir/Patient/{patient_id}")
+    ask_link = dedent(f"""
+        PREFIX ex: <http://example.org/fhir/custom#>
+            ASK {{ <{usuario_uri}> ex:tienePaciente <{paciente_uri}> . }}
+    """)
+    if not g_user.query(ask_link).askAnswer:  
+        raise HTTPException(status_code=403, detail="No autorizado o sin vinculación")
+    
+     # 2) Parsear fragmento de patch en grafo temporal
+    g_temp = Graph()
+    g_temp.parse(data=update, format="turtle")
+
+    # 3) Para cada predicado que llegue en el patch…
+    for p, o in g_temp.predicate_objects(paciente_uri):
+        # 3a) Borrar cualquier valor anterior para ese predicado
+        g_patient.update(f"""
+            DELETE WHERE {{ <{paciente_uri}> <{p}> ?old . }}
+        """)
+        # 3b) Si el objeto es blank node, copiar su subgrafo
+        if isinstance(o, BNode):
+            # primero enlazamos el blank node al paciente
+            g_patient.add((paciente_uri, p, o))
+            # luego copiamos todo su subgrafo recursivamente
+            copy_subgraph(o, g_temp, g_patient)
+        else:
+            # literal o URI: añadir directamente
+            g_patient.add((paciente_uri, p, o))
+
+    # 4) Persistir cambios
+    g_patient.commit()
+
+    return {"status": "ok", "message": f"Paciente {patient_id} parcheado correctamente."}
+    
