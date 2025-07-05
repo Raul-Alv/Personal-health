@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+rdflib
+rdflib-sqlalchemy
+SQLAlchemy
+pyshex
+pydantic
+python-multipart
+sqlalchemy
+python-dotenv
+passlib
+jose
+python-jose[cryptography]

@@ -1,0 +1,40 @@
+PREFIX fhir: <http://h7.org/fhir>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+start = @<ProcedureShape>
+
+<ProcedureShape> {
+    a [fhir:Procedure];
+    fhir:Resource.identifier @<IdentifierShape>;
+    fhir:Procedure.status [ fhir:value xsd:string ];
+    fhir:Procedure.code @<CodeableConceptShape>;
+    fhir:Procedure.subject @<ReferenceShape>;
+    fhir:Procedure.performedDateTime [ fhir:value xsd:date ];
+    fhir:Procedure.performer @<PerformerShape>
+}
+
+<IdentifierShape> {
+    fhir:index xsd:integer ;
+    fhir:Identifier.system [ fhir:value xsd:string ] ;
+    fhir:Identifier.value [ fhir:value xsd:string ]
+}
+
+<CodeableConceptShape> {
+    fhir:CodeableConcept.coding @<CodingShape> ;
+    fhir:CodeableConcept.text [ fhir:value xsd:string ]
+}
+
+<CodingShape> {
+    fhir:index xsd:integer ;
+    fhir:Coding.system [ fhir:value xsd:string ] ;
+    fhir:Coding.code [ fhir:value xsd:string ]
+}
+
+<ReferenceShape> {
+    fhir:Reference.reference [ fhir:value xsd:string ]
+}
+
+<PerformerShape> {
+    fhir:index xsd:integer ;
+    fhir:Procedure.performer.actor @<ReferenceShape>
+}

@@ -1,0 +1,44 @@
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd:   <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX fhir:  <http://hl7.org/fhir/>
+
+start = @<AllergyIntoleranceShape>
+
+<AllergyIntoleranceShape> {
+    rdf:type                                    [ fhir:AllergyIntolerance ] ;
+    fhir:AllergyIntolerance.clinicalStatus      @<CodeableConceptShape> ;
+    fhir:AllergyIntolerance.code                @<CodeableConceptShape> ;
+    fhir:AllergyIntolerance.patient             @<ReferenceShape> ;
+    fhir:AllergyIntolerance.onsetDateTime       @<ValueDateShape> ;
+    fhir:AllergyIntolerance.actor               @<ReferenceShape> ;
+    fhir:AllergyIntolerance.category            @<ValueStringShape> ;
+}
+
+<CodeableConceptShape> {
+    fhir:CodeableConcept.coding             @<CodingShape>+ ;
+    fhir:CodeableConcept.text               @<ValueStringShape>? ;
+}
+
+<CodingShape> {
+    fhir:Coding.code               @<ValueStringShape> ;
+    fhir:Coding.system             @<ValueURIShape> ;
+    fhir:Coding.display            @<ValueStringShape>? ;
+}
+
+<ReferenceShape> {
+    fhir:Reference.reference        @<ValueStringShape> ;
+    fhir:Reference.type             @<ValueStringShape>? ;
+}
+
+<ValueStringShape> {
+  fhir:value xsd:string ;
+}
+
+<ValueDateShape> {
+  fhir:value xsd:date ;
+}
+
+<ValueURIShape> {
+  fhir:value xsd:anyURI ;
+}
