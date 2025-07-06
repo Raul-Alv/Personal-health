@@ -1,5 +1,5 @@
 import tempfile
-from fastapi import Body, FastAPI, UploadFile, HTTPException, status, File, Form, Depends, Query, Request, Response
+from fastapi import Body, FastAPI, UploadFile, HTTPException, status, File, Form, Depends, Query, Response, APIRouter
 from fastapi.security import OAuth2PasswordBearer
 from pyshex import ShExEvaluator
 from rdflib import RDF, XSD, BNode, Graph, Literal, Namespace, URIRef, ConjunctiveGraph
@@ -23,7 +23,9 @@ g_allergy  = get_allergy_graph()
 FHIR = Namespace("http://hl7.org/fhir/")
 EX = Namespace("http://example.org/fhir/custom#")
 
-@app.post("/upload/")
+router = APIRouter(prefix="/api")
+
+@router.post("/upload/")
 async def upload_rdf_shex(rdf_file: UploadFile = File(...), shex_file: UploadFile = File(...), token: str = Depends(oauth2_scheme)):
     usuario_uri = decodificar_token(token)
     #print("Usuario URI decodificado:", usuario_uri)
@@ -123,11 +125,11 @@ async def upload_rdf_shex(rdf_file: UploadFile = File(...), shex_file: UploadFil
         "procedimientos_triples": n_proc
     }
 
-@app.get("/")
+@router.get("/")
 def read_root():
     return {"message": "Bienvenido a tu aplicacion personal de salud!"}
 
-@app.get("/pacientes/")
+@router.get("/pacientes/")
 async def listar_pacientes():
     q = """
     PREFIX fhir: <http://hl7.org/fhir/>
@@ -144,7 +146,7 @@ async def listar_pacientes():
         resultados.append({"uri": str(row.patient), "nombre": str(row.givenName), "apellido": str(row.familyName)})
     return resultados
 
-@app.get("/paciente")
+@router.get("/paciente")
 async def get_paciente(patient_id: str = Query( ..., alias="patient_id")):
     ask_q = dedent(f"""\
         PREFIX pa: <http://hl7.org/fhir/Patient/>
@@ -167,7 +169,7 @@ async def get_paciente(patient_id: str = Query( ..., alias="patient_id")):
     ]
     return {"id": patient_id, "tripletas": resultados}
 
-@app.delete("/pacientes/delete")
+@router.delete("/pacientes/delete")
 async def eliminar_paciente(patient_id: str = Query(
         ..., 
         alias="patient_id", 
@@ -198,17 +200,17 @@ async def eliminar_paciente(patient_id: str = Query(
     g_patient.serialize(format="ttl", destination="data/triplestore.db")
     return {"status": "ok", "message": f"Paciente {patient_id} eliminado."}
 
-@app.get("/procedures/")
+@router.get("/procedures/")
 def get_procedures():
     # stubbed
     return None
 
-@app.get("/procedures/{procedure_id}") 
+@router.get("/procedures/{procedure_id}") 
 def get_procedure(procedure_id: str):
     # stubbed
     procedure = [...]
 
-@app.post("/registro/")
+@router.post("/registro/")
 def registrar_usuario(email: str = Form(...), password: str = Form(...), nombre: str = Form(...)):
     usuario_id = email.split("@")[0]
     usuario_uri = f"http://example.org/fhir/custom#Usuario/{usuario_id}"
@@ -239,7 +241,7 @@ def registrar_usuario(email: str = Form(...), password: str = Form(...), nombre:
     g_user.commit()
     return {"message": "Usuario registrado correctamente"}
 
-@app.post("/login/")
+@router.post("/login/")
 def login_usuario(email: str = Form(...), password: str = Form(...)):
     query = dedent(f"""
         PREFIX ex: <http://example.org/fhir/custom#>
@@ -261,7 +263,7 @@ def login_usuario(email: str = Form(...), password: str = Form(...)):
     token = crear_token(str(usuario_uri))
     return {"access_token": token, "token_type": "bearer"}
 
-@app.get("/mis_pacientes/")
+@router.get("/mis_pacientes/")
 def obtener_mis_pacientes(token: str = Depends(oauth2_scheme)):
     usuario_uri = decodificar_token(token)
     if not usuario_uri:
@@ -285,7 +287,7 @@ def obtener_mis_pacientes(token: str = Depends(oauth2_scheme)):
         pacientes.append(info)
     return pacientes
 
-@app.get("/mis_pacientes/{patient_id}/get/procedimientos")
+@router.get("/mis_pacientes/{patient_id}/get/procedimientos")
 def obtener_procedimientos_paciente(patient_id: str, token: str = Depends(oauth2_scheme)):
      # 1) Decodificar y validar token
     usuario_uri = decodificar_token(token)
@@ -363,7 +365,7 @@ def obtener_procedimientos_paciente(patient_id: str, token: str = Depends(oauth2
 
     return procedimientos
 
-@app.get("/mis_pacientes/{patient_id}/get/alergias")
+@router.get("/mis_pacientes/{patient_id}/get/alergias")
 def obtener_alergias_paciente(patient_id: str, token: str = Depends(oauth2_scheme)):
     # 1) Decodificar y validar token
     usuario_uri = decodificar_token(token)
@@ -447,7 +449,7 @@ def obtener_alergias_paciente(patient_id: str, token: str = Depends(oauth2_schem
 
     return alergias
 
-@app.get("/export_all/{patient_id}")
+@router.get("/export_all/{patient_id}")
 def export_patient_data(patient_id: str, token: str = Depends(oauth2_scheme)):
     """
     Exporta los datos de un paciente y sus procedimientos en un ZIP: Turtle + ShEx.
@@ -528,7 +530,7 @@ def export_patient_data(patient_id: str, token: str = Depends(oauth2_scheme)):
         headers={"Content-Disposition": f"attachment; filename=export_{patient_id}.zip"}
     )
 
-@app.post("/asociar_paciente/")
+@router.post("/asociar_paciente/")
 def asociar_paciente(patient_id: str = Form(...), token: str = Depends(oauth2_scheme)):
     usuario_uri = decodificar_token(token)
     if not usuario_uri:
@@ -539,7 +541,7 @@ def asociar_paciente(patient_id: str = Form(...), token: str = Depends(oauth2_sc
     g_user.commit()
     return {"message": f"Paciente {patient_id} vinculado a {usuario_uri}"}
 
-@app.post("/query/")
+@router.post("/query/")
 async def ejecutar_query(sparql: str = Body(..., media_type="text/plain"), token: str = Depends(oauth2_scheme)):
     usuario_uri = decodificar_token(token)
     if not usuario_uri:
@@ -558,7 +560,7 @@ async def ejecutar_query(sparql: str = Body(..., media_type="text/plain"), token
         return Response(content=resultado.serialize(format="json"), media_type="application/sparql-results+json")
     return Response(status_code=204)
 
-@app.delete("/graph/clear", status_code=200)
+@router.delete("/graph/clear", status_code=200)
 async def clear_graph():
     try:
         # Ejecuta un SPARQL UPDATE para limpiar el grafo
@@ -586,7 +588,7 @@ async def clear_graph():
             detail=f"Error al limpiar el grafo: {e}"
         )
     
-@app.get("/triples")
+@router.get("/triples")
 def list_all_triples():
     store = get_store()
     graphs = {
@@ -607,7 +609,7 @@ def list_all_triples():
             })
     return output
 
-@app.patch("/mis_pacientes/{patient_id}/actualizar")
+@router.patch("/mis_pacientes/{patient_id}/actualizar")
 async def update_patient(
     patient_id: str,
     update: str = Body(...),
@@ -649,3 +651,6 @@ async def update_patient(
 
     return {"status": "ok", "message": f"Paciente {patient_id} parcheado correctamente."}
     
+@router.get("/ping")
+def ping():
+    return {"pong": True}

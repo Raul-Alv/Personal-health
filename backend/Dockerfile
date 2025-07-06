@@ -15,7 +15,7 @@ RUN pip install --upgrade pip \
 COPY . .
 
 # 5) Sitúate en el subdirectorio donde están main.py y database.py
-WORKDIR /app/backend
+WORKDIR /app
 
 # 6) Exponer puerto y arrancar
 EXPOSE 8000
