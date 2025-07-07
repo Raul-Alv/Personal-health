@@ -239,7 +239,8 @@ def registrar_usuario(email: str = Form(...), password: str = Form(...), nombre:
     """)
     g_user.update(insert_query)
     g_user.commit()
-    return {"message": "Usuario registrado correctamente"}
+    token = crear_token(str(usuario_uri))
+    return {"access_token": token, "token_type": "bearer"}
 
 @router.post("/login/")
 def login_usuario(email: str = Form(...), password: str = Form(...)):
@@ -279,13 +280,116 @@ def obtener_mis_pacientes(token: str = Depends(oauth2_scheme)):
         # Luego obtenemos nombre y apellido del grafo de pacientes
         name_q = dedent(f"""
             PREFIX fhir: <http://hl7.org/fhir/>
-            SELECT ?given ?family WHERE {{ <{p_uri}> fhir:Patient.name ?n . ?n fhir:HumanName.given ?given ; fhir:HumanName.family ?family . }}
+            SELECT ?given ?family WHERE {{ 
+                <{p_uri}> fhir:Patient.name ?n . 
+                ?n fhir:HumanName.given ?given ; 
+                    fhir:HumanName.family ?family . }}
         """)
         info = {"id": str(p_uri).split("/")[-1]}
         for nm in g_patient.query(name_q):
             info.update({"nombre": str(nm.given), "apellido": str(nm.family)})
         pacientes.append(info)
     return pacientes
+
+@router.get("/mis_pacientes/{patient_id}/get/datos")
+def obtener_datos_paciente(patient_id: str, token: str = Depends(oauth2_scheme)):
+    # 1) Decodificar y validar token
+    usuario_uri = decodificar_token(token)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+    # 2) URI del paciente y verificación de vínculo en grafo de usuarios
+    paciente_uri = URIRef(f"http://hl7.org/fhir/Patient/{patient_id}")
+    ask_link = dedent(f"""
+        PREFIX ex: <http://example.org/fhir/custom#>
+        ASK {{ <{usuario_uri}> ex:tienePaciente <{paciente_uri}> . }}
+    """)
+    if not g_user.query(ask_link).askAnswer:
+        raise HTTPException(status_code=403, detail="No autorizado o sin vinculación")
+    else:
+        print(f"Usuario {usuario_uri} tiene acceso al paciente {paciente_uri}")
+    # 3) SPARQL para obtener todos los triples del paciente
+    sparql = dedent(f"""
+      PREFIX fhir: <http://hl7.org/fhir/>
+        SELECT
+            ?nombre 
+            ?apellidos
+            ?genero
+            ?fechaNacimiento
+            ?estado_civil
+            ?telefono
+            ?ss
+            ?calle
+            ?cp
+            ?ciudad
+            ?provincia
+            ?pais
+        FROM <urn:app_salud:pacientes>
+        WHERE {{
+            <{paciente_uri}> fhir:Patient.name
+                    / fhir:HumanName.given
+                    / fhir:value ?nombre ;
+
+                fhir:Patient.name
+                    / fhir:HumanName.family
+                    / fhir:value ?apellidos ;
+
+                fhir:Patient.gender
+                    / fhir:value ?genero ;
+                
+                fhir:Patient.birthDate
+                    / fhir:value ?fechaNacimiento ;
+
+                fhir:Patient.maritalStatus
+                    / fhir:value ?estado_civil ;
+                
+                fhir:Patient.identifier
+                    / fhir:Identifier.value
+                    / fhir:value ?ss ;
+                
+                fhir:Patient.telecom
+                    / fhir:ContactPoint.value
+                    / fhir:value ?telefono ;
+                
+                fhir:Patient.address
+                    / fhir:Address.line
+                    / fhir:value ?calle ;
+                fhir:Patient.address
+                    / fhir:Address.postalCode
+                    / fhir:value ?cp ;
+                fhir:Patient.address
+                    / fhir:Address.city
+                    / fhir:value ?ciudad ;
+                fhir:Patient.address
+                    / fhir:Address.state
+                    / fhir:value ?provincia ;
+                fhir:Patient.address
+                    / fhir:Address.country
+                    / fhir:value ?pais .
+        }}
+    """)
+    # 3) Ejecutar la consulta sobre el ConjunctiveGraph
+    results = store.query(sparql)
+    print(f"Resultados obtenidos: {len(results)}")
+    # 4) Formatear en JSON
+    datos_paciente = []
+    for row in results:
+        datos_paciente.append({
+            "nombre":           str(row.nombre)           if row.nombre           else None,
+            "apellidos":        str(row.apellidos)        if row.apellidos        else None,
+            "genero":           str(row.genero)           if row.genero           else None,
+            "fechaNacimiento":  str(row.fechaNacimiento)  if row.fechaNacimiento  else None,
+            "estado_civil":     str(row.estado_civil)     if row.estado_civil     else None,
+            "telefono":         str(row.telefono)         if row.telefono         else None,
+            "ss":               str(row.ss)               if row.ss               else None,
+            "calle":            str(row.calle)            if row.calle            else None,
+            "cp":               str(row.cp)               if row.cp               else None,
+            "ciudad":           str(row.ciudad)           if row.ciudad           else None,
+            "provincia":        str(row.provincia)        if row.provincia        else None,
+            "pais":             str(row.pais)             if row.pais             else None
+        })
+    return datos_paciente
+   
 
 @router.get("/mis_pacientes/{patient_id}/get/procedimientos")
 def obtener_procedimientos_paciente(patient_id: str, token: str = Depends(oauth2_scheme)):
@@ -654,3 +758,29 @@ async def update_patient(
 @router.get("/ping")
 def ping():
     return {"pong": True}
+
+@router.get("/me/")
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    usuario_uri = decodificar_token(token)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    query = f"""
+        PREFIX ex: <http://example.org/fhir/custom#>
+        SELECT ?nombre ?email WHERE {{
+            <{usuario_uri}> a ex:Usuario ;
+                ex:nombre ?nombre ;
+                ex:email ?email .
+        }}
+    """
+    results = list(g_user.query(query))
+    if not results:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    nombre, email = results[0]
+    return {
+        "usuario_uri": usuario_uri,
+        "nombre": str(nombre),
+        "email": str(email)
+    }
+
+
+app.include_router(router)

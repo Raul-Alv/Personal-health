@@ -2,7 +2,7 @@
   <div class="login-wrapper">
     <div class="login-box">
       <h2 class="title">Iniciar sesión</h2>
-      <form @submit.prevent="onLogin">
+      <form @submit.prevent="login">
         <div class="form-group">
           <label for="email">Email</label>
           <input
@@ -43,19 +43,37 @@
 </template>
 
 <script>
+import api from '@/api/axios'
 export default {
   name: 'LoginView',
   data() {
     return {
       email: '',
       password: '',
-      showPassword: false
+      showPassword: false,
+      error: ''
     }
   },
+  mounted() {
+    console.log('✅ LoginView montado');
+  },
   methods: {
-    onLogin() {
-      // Lógica de login...
-      console.log('Email:', this.email, 'Password:', this.password);
+    async login() {
+      try {
+        console.log('➡️ login() llamado');
+        console.log('URL a la que llamaría login:', api.getUri({ url: '/login/' }));
+        const params = new URLSearchParams()
+        params.append('email', this.email)
+        params.append('password', this.password)
+        const res = await api.post('/login/', params, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        })
+        localStorage.setItem('token', res.data.access_token)
+        api.defaults.headers.common['Authorization'] = `Bearer ${res.data.access_token}`
+        this.$router.push('/profile')
+      } catch (e) {
+        this.error = e.response?.data?.detail || 'Error en el login'
+      }
     }
   }
 }
