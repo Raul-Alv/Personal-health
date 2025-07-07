@@ -5,6 +5,7 @@ import RegisterView from '../views/RegisterView.vue'
 import PatientView from '../views/PatientView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import ProcedureListPage from '../views/ProcedureListPage.vue'
+import AllergyListPage from '../views/AllergyListPage.vue'
 
 const routes = [
   { path: '/',        component: HomePage },
@@ -16,8 +17,13 @@ const routes = [
     component: PatientView,
     props: true
   },
-  { path: '/patient/:patient_id/procedures',
+  { path: '/patient/:patient_id/procedimientos',
     component: ProcedureListPage,
+    props: true
+  },
+  {
+    path: '/patient/:patient_id/alergias',
+    component: AllergyListPage,
     props: true
   }
 ]
