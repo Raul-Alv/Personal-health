@@ -142,14 +142,14 @@ async function fetchPatientDatos() {
 
 // Navegación y export
 function goProcedures() {
-  router.push({ name: 'Procedimientos', params: { id: props.patientId } })
+  router.push({ name: 'Procedimientos', params: { id: props.patient_id } })
 }
 function goAllergies() {
-  router.push({ name: 'Alergias', params: { id: props.patientId } })
+  router.push({ name: 'Alergias', params: { id: props.patient_id } })
 }
 function doExport() {
   window.open(
-    `${api.defaults.baseURL}/export_all/${props.patientId}`,
+    `${api.defaults.baseURL}/export_all/${props.patient_id}`,
     '_blank'
   )
 }

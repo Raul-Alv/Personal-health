@@ -4,6 +4,7 @@ import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import PatientView from '../views/PatientView.vue'
 import ProfileView from '../views/ProfileView.vue'
+import ProcedureListPage from '../views/ProcedureListPage.vue'
 
 const routes = [
   { path: '/',        component: HomePage },
@@ -13,6 +14,10 @@ const routes = [
   {
     path: '/patient/:patient_id',
     component: PatientView,
+    props: true
+  },
+  { path: '/patient/:patient_id/procedures',
+    component: ProcedureListPage,
     props: true
   }
 ]
