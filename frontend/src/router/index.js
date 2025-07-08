@@ -10,27 +10,35 @@ import ProcedimientoDetalle from '../views/ProcedimientoDetalle.vue'
 
 const routes = [
   { path: '/',        component: HomePage },
-  { path: '/login',   component: LoginView },
+  { path: '/login', name:'Login',  component: LoginView },
   { path: '/register',component: RegisterView },
-  { path: '/profile', component: ProfileView },
+  { 
+    path: '/profile',
+    component: ProfileView,
+    meta: { requiresAuth: true }
+  },
   {
     path: '/patient/:patient_id',
     component: PatientView,
-    props: true
+    props: true,
+    meta: { requiresAuth: true }
   },
   { path: '/patient/:patient_id/procedimientos',
     component: ProcedureListPage,
-    props: true
+    props: true,
+    meta: { requiresAuth: true }
   },
   {
     path: '/patient/:patient_id/alergias',
     component: AllergyListPage,
-    props: true
+    props: true,
+    meta: { requiresAuth: true }
   }
   , {
     path: '/patient/:patient_id/procedimientos/:procedure_id',
     component: ProcedimientoDetalle,
-    props: true
+    props: true,
+    meta: { requiresAuth: true }
   }
 ]
 
