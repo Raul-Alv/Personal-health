@@ -1,7 +1,7 @@
 <template>
   <div class="ppv-container">
     <header class="ppv-header">
-      <button class="ppv-btn ppv-btn-back" @click="$emit('back')">
+      <button class="ppv-btn ppv-btn-back" @click="goBack">
         ← Paciente
       </button>
       <div class="ppv-actions">
@@ -36,6 +36,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '@/api/axios'
+import { useRouter } from 'vue-router'
 
 /** ID del paciente para las llamadas */
 const props = defineProps({
@@ -50,6 +51,12 @@ const emit = defineEmits(['back', 'select'])
 const procedures = ref([])
 const loading    = ref(false)
 const error      = ref(false)
+
+const router = useRouter()
+
+function goBack() {
+  router.back()
+}
 
 /** Carga la lista desde el backend */
 async function loadProcedures() {

@@ -1,5 +1,9 @@
 <template>
   <div class="page">
+    <div
+      v-if="isEditing"
+      class="overlay"
+    ></div>
     <div class="container">
       <!-- COLUMNA IZQUIERDA: DETALLES -->
       <section class="details">
@@ -10,22 +14,48 @@
           <h1 class="name">{{ patient.nombre }} {{ patient.apellido }}</h1>
         </header>
         <hr class="divider–horizontal" />
+        <!-- Botones -->
+        <button
+          v-if="!isEditing"
+          @click="startEdit"
+          class="btn edit-btn">Editar</button>
 
+        <button
+          v-if="isEditing"
+          @click="saveEdit"
+          class="btn save-btn edit-container">Guardar</button>
+        <button
+          v-if="isEditing"
+          @click="cancelEdit"
+          class="btn cancel-btn edit-container">Cancelar</button>
+      
         <div class="field">
           <label>Género:</label>
-          <span>{{ patient.genero }}</span>
+          <span
+          :contenteditable="isEditing"
+          @input="onInput('genero', $event)"
+          class="editable-field">{{ patient.genero }}</span>
         </div>
         <div class="field">
           <label>Fecha de nacimiento:</label>
-          <span>{{ patient.fecha_nacimiento }}</span>
+          <span
+          :contenteditable="isEditing"
+          @input="onInput('fecha_nacimiento', $event)"
+          class="editable-field">{{ patient.fecha_nacimiento }}</span>
         </div>
         <div class="field">
           <label>Estado civil:</label>
-          <span>{{ patient.estado_civil }}</span>
+          <span
+          :contenteditable="isEditing"
+          @input="onInput('estado_civil', $event)"
+          class="editable-field">{{ patient.estado_civil }}</span>
         </div>
         <div class="field ssn-field">
           <label>Seguridad Social:</label>
-          <span>{{ showSSN ? patient.ssn : maskedSSN }}</span>
+          <span
+          :contenteditable="isEditing"
+          @input="onInput('ssn', $event)"
+          class="editable-field">{{ showSSN ? patient.ssn : maskedSSN }}</span>
           <button class="eye-btn" @click="showSSN = !showSSN" :aria-label="showSSN ? 'Ocultar' : 'Mostrar'">
             <svg v-if="!showSSN" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 5c-7.633 0-11 6.5-11 6.5s3.367 6.5 11 6.5 11-6.5 11-6.5S19.633 5 12 5zm0 11a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
@@ -40,19 +70,39 @@
         <fieldset class="address">
           <legend>Dirección</legend>
           <div class="subfield">
-            <label>Calle:</label><span>{{ patient.address.calle }}</span>
+            <label>Calle:</label>
+            <span
+            :contenteditable="isEditing"
+            @input="onInput('calle', $event)"
+            class="editable-field">{{ patient.address.calle }}</span>
           </div>
           <div class="subfield">
-            <label>CP:</label><span>{{ patient.address.cp }}</span>
+            <label>CP:</label>
+            <span
+            :contenteditable="isEditing"
+            @input="onInput('cp', $event)"
+            class="editable-field">{{ patient.address.cp }}</span>
           </div>
           <div class="subfield">
-            <label>Ciudad:</label><span>{{ patient.address.ciudad }}</span>
+            <label>Ciudad:</label>
+            <span
+            :contenteditable="isEditing"
+            @input="onInput('ciudad', $event)"
+            class="editable-field">{{ patient.address.ciudad }}</span>
           </div>
           <div class="subfield">
-            <label>Provincia:</label><span>{{ patient.address.provincia }}</span>
+            <label>Provincia:</label>
+            <span
+            :contenteditable="isEditing"
+            @input="onInput('provincia', $event)"
+            class="editable-field">{{ patient.address.provincia }}</span>
           </div>
           <div class="subfield">
-            <label>País:</label><span>{{ patient.address.pais }}</span>
+            <label>País:</label>
+            <span
+            :contenteditable="isEditing"
+            @input="onInput('pais', $event)"
+            class="editable-field">{{ patient.address.pais }}</span>
           </div>
         </fieldset>
       </section>
@@ -107,6 +157,37 @@ const maskedSSN = computed(() =>
   patient.ssn.replace(/.(?=.{4})/g, '*')
 )
 
+const emit = defineEmits(['update-patient'])
+
+const isEditing = ref(false)
+const original = ref({})
+const edited = reactive({})
+
+// Inicia la edición: clonamos paciente a original y edited
+function startEdit() {
+  original.value = JSON.parse(JSON.stringify(patient))
+  Object.assign(edited, JSON.parse(JSON.stringify(patient)))
+  isEditing.value = true
+}
+
+// Maneja cambios en contenteditable
+function onInput(field, event) {
+  edited[field] = event.target.innerText.trim()
+}
+
+// Guarda cambios: emitimos y actualizamos prop local
+function saveEdit() {
+  emit('update-patient', JSON.parse(JSON.stringify(edited)))
+  Object.assign(patient, edited)
+  isEditing.value = false
+}
+
+// Cancela: revertimos a original
+function cancelEdit() {
+  Object.assign(patient, original.value)
+  isEditing.value = false
+}
+
 // Fetch de datos
 async function fetchPatientDatos() {
   try {
@@ -142,10 +223,10 @@ async function fetchPatientDatos() {
 
 // Navegación y export
 function goProcedures() {
-  router.push({ name: 'Procedimientos', params: { id: props.patient_id } })
+  router.push(`/patient/${props.patient_id}/procedimientos`)
 }
 function goAllergies() {
-  router.push({ name: 'Alergias', params: { id: props.patient_id } })
+  router.push(`/patient/${props.patient_id}/alergias`)
 }
 function doExport() {
   window.open(

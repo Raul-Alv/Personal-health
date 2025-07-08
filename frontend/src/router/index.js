@@ -6,6 +6,7 @@ import PatientView from '../views/PatientView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import ProcedureListPage from '../views/ProcedureListPage.vue'
 import AllergyListPage from '../views/AllergyListPage.vue'
+import ProcedimientoDetalle from '../views/ProcedimientoDetalle.vue'
 
 const routes = [
   { path: '/',        component: HomePage },
@@ -24,6 +25,11 @@ const routes = [
   {
     path: '/patient/:patient_id/alergias',
     component: AllergyListPage,
+    props: true
+  }
+  , {
+    path: '/patient/:patient_id/procedimientos/:procedure_id',
+    component: ProcedimientoDetalle,
     props: true
   }
 ]
