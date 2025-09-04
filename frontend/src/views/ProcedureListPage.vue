@@ -21,11 +21,11 @@
         class="ppv-item"
         @click="selectProcedure(proc)"
       >
-        <div class="ppv-item-title">{{ proc.text }}</div>
-        <div class="ppv-item-meta">
-          <span class="ppv-item-code">{{ proc.code }}</span>
-          <span class="ppv-item-date">{{ proc.date }}</span>
-        </div>
+          <div class="ppv-item-title">{{ proc.text }}</div>
+          <div class="ppv-item-meta">
+            <span class="ppv-item-code">{{ proc.code }}</span>
+            <span class="ppv-item-date">{{ proc.date }}</span>
+          </div>
       </div>
       <div v-if="loading" class="ppv-loading">Cargando…</div>
       <div v-if="error" class="ppv-error">Error al cargar</div>
@@ -100,7 +100,8 @@ async function exportProcedures() {
 
 /** Selecciona uno y emite al padre */
 function selectProcedure(proc) {
-  emit('select', proc)
+  console.log(proc)
+  router.push(`/patient/${props.patient_id}/procedimientos/${proc.procedure_uri.split('/').pop()}`)
 }
 
 /** Carga automática al montarse */

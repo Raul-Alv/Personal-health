@@ -6,7 +6,7 @@ import PatientView from '../views/PatientView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import ProcedureListPage from '../views/ProcedureListPage.vue'
 import AllergyListPage from '../views/AllergyListPage.vue'
-import ProcedimientoDetalle from '../views/ProcedimientoDetalle.vue'
+import ProcedureDetail from '../views/ProcedureDetail.vue'
 
 const routes = [
   { path: '/',        component: HomePage },
@@ -36,10 +36,10 @@ const routes = [
   }
   , {
     path: '/patient/:patient_id/procedimientos/:procedure_id',
-    component: ProcedimientoDetalle,
+    component: ProcedureDetail,
     props: true,
     meta: { requiresAuth: true }
-  }
+  },
 ]
 
 export default createRouter({

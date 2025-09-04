@@ -35,14 +35,36 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import api from '@/api/axios'
+import { useRouter } from 'vue-router'
 
+/** ID del paciente para las llamadas */
+const props = defineProps({
+  patient_id: {
+    type: [String, Number],
+    required: true
+  }
+})
+const router = useRouter()
 const selectedIso = ref(null)
-
+const procedures = ref([])
+const loading    = ref(false)
+const error      = ref(false)
 async function fetchTooth() {
-  const res  = await fetch('/api/selected-tooth')
-  const txt  = await res.text()
-  const isoM = txt.match(/ISO designation\s*([1-4]\d)/i)
-  if (isoM) selectedIso.value = isoM[1]
+  loading.value = true
+  error.value   = false
+  try {
+    const resp = await api.get(
+      `/procedures/${props.patient_id}`
+    )
+    // Asume que la respuesta es un array de { id, code, text, date }
+    procedures.value = resp.data
+  } catch (e) {
+    console.error(e)
+    error.value = true
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(fetchTooth)

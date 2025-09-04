@@ -200,16 +200,6 @@ async def eliminar_paciente(patient_id: str = Query(
     g_patient.serialize(format="ttl", destination="data/triplestore.db")
     return {"status": "ok", "message": f"Paciente {patient_id} eliminado."}
 
-@router.get("/procedures/")
-def get_procedures():
-    # stubbed
-    return None
-
-@router.get("/procedures/{procedure_id}") 
-def get_procedure(procedure_id: str):
-    # stubbed
-    procedure = [...]
-
 @router.post("/registro/")
 def registrar_usuario(email: str = Form(...), password: str = Form(...), nombre: str = Form(...)):
     usuario_id = email.split("@")[0]
@@ -390,7 +380,6 @@ def obtener_datos_paciente(patient_id: str, token: str = Depends(oauth2_scheme))
         })
     return datos_paciente
    
-
 @router.get("/mis_pacientes/{patient_id}/get/procedimientos")
 def obtener_procedimientos_paciente(patient_id: str, token: str = Depends(oauth2_scheme)):
      # 1) Decodificar y validar token
@@ -468,6 +457,81 @@ def obtener_procedimientos_paciente(patient_id: str, token: str = Depends(oauth2
         })
 
     return procedimientos
+
+@router.get("/mis_pacientes/{patient_id}/get/procedimientos/{procedure_id}")
+def obtener_procedimiento_paciente(patient_id: str, procedure_id: str, token: str = Depends(oauth2_scheme)):
+    # 1) Decodificar y validar token
+    usuario_uri = decodificar_token(token)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+    # 2) URI del paciente y verificación de vínculo en grafo de usuarios
+    paciente_uri = URIRef(f"http://hl7.org/fhir/Patient/{patient_id}")
+    ask_link = dedent(f"""
+        PREFIX ex: <http://example.org/fhir/custom#>
+        ASK {{ <{usuario_uri}> ex:tienePaciente <{paciente_uri}> . }}
+    """)
+    if not g_user.query(ask_link).askAnswer:
+        raise HTTPException(status_code=403, detail="No autorizado o sin vinculación")
+    else:
+        print(f"Usuario {usuario_uri} tiene acceso al paciente {paciente_uri}")
+    # 3) URI del procedimiento
+    procedure_uri = URIRef(f"http://hl7.org/fhir/Procedure/{procedure_id}")
+    # 4) SPARQL para obtener todos los triples del procedimiento
+    sparql = dedent(f"""
+        PREFIX fhir: <http://hl7.org/fhir/>
+        SELECT
+            ?code
+            ?text
+            ?status
+            ?performedDateTime
+            ?performerRef
+            ?dienteCode
+            ?dienteDisplay
+        FROM <urn:app_salud:procedimientos>
+        WHERE {{
+            <{procedure_uri}> fhir:Procedure.code
+                    / fhir:CodeableConcept.coding
+                    / fhir:Coding.code
+                    / fhir:value ?code ;
+                fhir:Procedure.code
+                    / fhir:CodeableConcept.text
+                    / fhir:value ?text ;
+                fhir:Procedure.status
+                    / fhir:value ?status ;
+                fhir:Procedure.performedDateTime
+                    / fhir:value ?performedDateTime ;
+                fhir:Procedure.performer
+                    / fhir:Procedure.performer.actor
+                    / fhir:Reference.reference
+                    / fhir:value ?performerRef ;
+                OPTIONAL {{
+                    <{procedure_uri}> fhir:Procedure.bodySite
+                        / fhir:CodeableConcept.coding
+                        / fhir:Coding.code
+                        / fhir:value ?dienteCode ;
+                    fhir:Procedure.bodySite
+                        / fhir:CodeableConcept.coding
+                        / fhir:Coding.display
+                        / fhir:value ?dienteDisplay .
+                }}
+        }}
+    """)      
+    results = store.query(sparql)
+    # 5) Formatear en JSON
+    procedimiento = []
+    for row in results:
+        procedimiento.append({
+            "procedure_uri":     str(procedure_uri),
+            "code":              str(row.code)              if row.code              else None,
+            "text":              str(row.text)              if row.text              else None,
+            "status":            str(row.status)            if row.status            else None,
+            "performedDateTime": str(row.performedDateTime) if row.performedDateTime else None,
+            "performerRef":      str(row.performerRef)      if row.performerRef      else None,
+            "dienteCode":        str(row.dienteCode)        if row.dienteCode        else None,
+            "dienteDisplay":     str(row.dienteDisplay)     if row.dienteDisplay     else None
+        })
+    return procedimiento 
 
 @router.get("/mis_pacientes/{patient_id}/get/alergias")
 def obtener_alergias_paciente(patient_id: str, token: str = Depends(oauth2_scheme)):
