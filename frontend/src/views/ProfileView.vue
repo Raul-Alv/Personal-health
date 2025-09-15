@@ -47,7 +47,7 @@ export default {
   methods: {
     logout() {
       localStorage.removeItem('token')
-      delete api.defaults.headers.common['Authorization']
+      import('@/api/axios').then(({ setApiToken }) => setApiToken(null))
       this.$router.push('/')
     }
   }

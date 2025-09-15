@@ -7,10 +7,17 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
-const token = localStorage.getItem('token')
-if (token) {
-  api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+// Función para actualizar el header Authorization cuando el token cambie
+export function setApiToken(token) {
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  } else {
+    delete api.defaults.headers.common['Authorization']
+  }
 }
+
+// Inicializa el header al cargar
+setApiToken(localStorage.getItem('token'))
 api.interceptors.request.use(config => {
   console.log(
     `➡️ Petición Axios: [${config.method.toUpperCase()}]`,

@@ -8,10 +8,19 @@ from rdf_store import  ALERGIAS_GRAPH_ID, PATIENTS_GRAPH_ID, PROCEDURES_GRAPH_ID
 from textwrap import dedent
 from rdf_util import copy_subgraph, crear_token, verify_password, save_registraion
 from login_funcs import hash_password, verify_password, crear_token, decodificar_token
+from fastapi.middleware.cors import CORSMiddleware
+
 import io
 import zipfile
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://[::1]:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 store = get_store()
@@ -257,9 +266,10 @@ def login_usuario(email: str = Form(...), password: str = Form(...)):
 @router.get("/mis_pacientes/")
 def obtener_mis_pacientes(token: str = Depends(oauth2_scheme)):
     usuario_uri = decodificar_token(token)
+    print("Token en localStorage:", token)
     if not usuario_uri:
         raise HTTPException(status_code=401, detail="Token inválido")
-    print("Usuario URI decodificado:", usuario_uri)
+    print("Usuario URI decodificado en mis_pacientes:", usuario_uri)
     query = dedent(f"""
         PREFIX ex: <http://example.org/fhir/custom#>
         SELECT ?patient WHERE {{ <{usuario_uri}> ex:tienePaciente ?patient . }}
@@ -278,6 +288,45 @@ def obtener_mis_pacientes(token: str = Depends(oauth2_scheme)):
         info = {"id": str(p_uri).split("/")[-1]}
         for nm in g_patient.query(name_q):
             info.update({"nombre": str(nm.given), "apellido": str(nm.family)})
+        pacientes.append(info)
+    return pacientes
+
+@router.get("/mis_pacientes/menu")
+def obtener_pacientes_menu(token: str = Depends(oauth2_scheme)):
+    usuario_uri = decodificar_token(token)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    
+    # Obtener los pacientes vinculados al usuario
+    query = dedent(f"""
+        PREFIX ex: <http://example.org/fhir/custom#>
+        SELECT ?patient WHERE {{ <{usuario_uri}> ex:tienePaciente ?patient . }}
+    """)
+    pacientes = []
+    for row in g_user.query(query):
+        p_uri = row.patient
+        # Obtener nombre y apellido del paciente
+        name_q = dedent(f"""
+            PREFIX fhir: <http://hl7.org/fhir/>
+            SELECT ?given ?family 
+            WHERE {{ 
+                <{p_uri}> fhir:Patient.name ?n . 
+                    ?n fhir:HumanName.given 
+                    /fhir:value ?given ;
+
+                    fhir:HumanName.family 
+                    /fhir:value ?family .
+            }}
+        """)
+        info = {
+            "id": str(p_uri).split("/")[-1],
+            "uri": str(p_uri)
+        }
+        for nm in g_patient.query(name_q):
+            info.update({
+                "nombre": str(nm.given),
+                "apellido": str(nm.family)
+            })
         pacientes.append(info)
     return pacientes
 

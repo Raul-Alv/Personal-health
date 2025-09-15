@@ -43,7 +43,7 @@
 </template>
 
 <script>
-import api from '@/api/axios'
+import api, { setApiToken } from '@/api/axios'
 export default {
   name: 'LoginView',
   data() {
@@ -68,9 +68,9 @@ export default {
         const res = await api.post('/login/', params, {
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         })
-        localStorage.setItem('token', res.data.access_token)
-        api.defaults.headers.common['Authorization'] = `Bearer ${res.data.access_token}`
-        this.$router.push('/profile')
+  localStorage.setItem('token', res.data.access_token)
+  setApiToken(res.data.access_token)
+  this.$router.push('/profile')
       } catch (e) {
         this.error = e.response?.data?.detail || 'Error en el login'
       }

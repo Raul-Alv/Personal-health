@@ -1,34 +1,34 @@
 <template>
-  <div class="ppv-container">
-    <header class="ppv-header">
-      <button class="ppv-btn ppv-btn-back" @click="goBack">
-        ← Paciente
-      </button>
-      <div class="ppv-actions">
-        <button class="ppv-btn ppv-btn-export" @click="exportProcedures">
-          Exportar
+  <div class="page-container">
+    <CollapsableMenu />
+    <div class="main-content">
+      <header class="ppv-header">
+        <button class="ppv-btn ppv-btn-back" @click="goBack">
+          ← Paciente
         </button>
-        <button class="ppv-btn ppv-btn-load" @click="loadProcedures">
-          Cargar
-        </button>
+        <div class="ppv-actions">
+          <button class="ppv-btn ppv-btn-export" @click="cerrarSesion">
+            Cerrar sesión
+          </button>
+        </div> 
+      </header>
+      
+      <div class="ppv-list">
+        <div
+          v-for="proc in procedures"
+          :key="proc.id"
+          class="ppv-item"
+          @click="selectProcedure(proc)"
+        >
+            <div class="ppv-item-title">{{ proc.text }}</div>
+            <div class="ppv-item-meta">
+              <span class="ppv-item-code">{{ proc.code }}</span>
+              <span class="ppv-item-date">{{ proc.date }}</span>
+            </div>
+        </div>
+        <div v-if="loading" class="ppv-loading">Cargando…</div>
+        <div v-if="error" class="ppv-error">Error al cargar</div>
       </div>
-    </header>
-
-    <div class="ppv-list">
-      <div
-        v-for="proc in procedures"
-        :key="proc.id"
-        class="ppv-item"
-        @click="selectProcedure(proc)"
-      >
-          <div class="ppv-item-title">{{ proc.text }}</div>
-          <div class="ppv-item-meta">
-            <span class="ppv-item-code">{{ proc.code }}</span>
-            <span class="ppv-item-date">{{ proc.date }}</span>
-          </div>
-      </div>
-      <div v-if="loading" class="ppv-loading">Cargando…</div>
-      <div v-if="error" class="ppv-error">Error al cargar</div>
     </div>
   </div>
 </template>
@@ -37,6 +37,7 @@
 import { ref, onMounted } from 'vue'
 import api from '@/api/axios'
 import { useRouter } from 'vue-router'
+import CollapsableMenu from './CollapsableMenu.vue'
 
 /** ID del paciente para las llamadas */
 const props = defineProps({
@@ -56,6 +57,11 @@ const router = useRouter()
 
 function goBack() {
   router.back()
+}
+
+function cerrarSesion() {
+  localStorage.removeItem("token");
+  router.push("/login");
 }
 
 /** Carga la lista desde el backend */
@@ -110,12 +116,13 @@ onMounted(loadProcedures)
 
 <style scoped>
 :root {
-  --ppv-bg: #fff;
-  --ppv-header-bg: #f9fafb;
+  --ppv-bg: #ffffff;
+  --ppv-header-bg: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   --ppv-border: #e5e7eb;
-  --ppv-hover-bg: #f3f4f6;
-  --ppv-btn-bg: #e5e7eb;
-  --ppv-btn-hover: #d1d5db;
+  --ppv-hover-bg: #f8fafc;
+  --ppv-btn-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --ppv-btn-hover: linear-gradient(135deg, #5a6fd8 0%, #6b4190 100%);
+  --ppv-btn-text: #ffffff;
   --ppv-item-hover-animation: hover-scale 150ms ease-in-out;
 }
 
@@ -124,11 +131,23 @@ onMounted(loadProcedures)
   to   { transform: scale(1.02); }
 }
 
-.ppv-container {
+.page-container {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+.main-content {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 100vh;
   background: var(--ppv-bg);
+  overflow: hidden;
 }
 
 .ppv-header {
@@ -138,6 +157,8 @@ onMounted(loadProcedures)
   padding: 0.75rem 1rem;
   background: var(--ppv-header-bg);
   border-bottom: 1px solid var(--ppv-border);
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .ppv-actions > .ppv-btn {
@@ -150,49 +171,113 @@ onMounted(loadProcedures)
   border: none;
   border-radius: 0.375rem;
   cursor: pointer;
-  transition: background 120ms;
+  transition: all 120ms ease;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ppv-btn-text);
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
 }
 
 .ppv-btn:hover {
   background: var(--ppv-btn-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
 }
 
 .ppv-list {
   flex: 1;
-  position: relative;
+  padding: 1rem;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .ppv-loading,
 .ppv-error {
-  padding: 1rem;
   text-align: center;
-  color: #6b7280;
+  padding: 2rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+.ppv-error {
+  color: #dc2626;
 }
 
 .ppv-item {
   padding: 1rem;
-  border-bottom: 1px solid var(--ppv-border);
+  border: 1px solid var(--ppv-border);
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
   cursor: pointer;
-  transition: background 120ms, transform 150ms;
+  transition: var(--ppv-item-hover-animation);
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .ppv-item:hover {
   background: var(--ppv-hover-bg);
-  animation: var(--ppv-item-hover-animation);
+  border-color: rgba(102, 126, 234, 0.3);
+  animation: hover-scale;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  transform: translateY(-1px);
 }
 
 .ppv-item-title {
   font-weight: 600;
-  margin-bottom: 0.25rem;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
 }
 
 .ppv-item-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 0.875rem;
-  color: #6b7280;
+  color: #64748b;
 }
 
-.ppv-item-meta > span + span {
-  margin-left: 1rem;
+.ppv-item-code {
+  font-family: monospace;
+  background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  color: #0369a1;
+  border: 1px solid rgba(3, 105, 161, 0.2);
+}
+
+.ppv-item-date {
+  font-weight: 500;
+  color: #475569;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .page-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  
+  .ppv-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  
+  .ppv-actions {
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .ppv-actions > .ppv-btn {
+    margin-left: 0;
+    flex: 1;
+    margin-right: 0.25rem;
+  }
+  
+  .ppv-actions > .ppv-btn:last-child {
+    margin-right: 0;
+  }
 }
 </style>
