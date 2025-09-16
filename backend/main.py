@@ -747,6 +747,8 @@ def export_patient_data(patient_id: str, token: str = Depends(oauth2_scheme)):
         headers={"Content-Disposition": f"attachment; filename=export_{patient_id}.zip"}
     )
 
+
+
 @router.post("/asociar_paciente/")
 def asociar_paciente(patient_id: str = Form(...), token: str = Depends(oauth2_scheme)):
     usuario_uri = decodificar_token(token)

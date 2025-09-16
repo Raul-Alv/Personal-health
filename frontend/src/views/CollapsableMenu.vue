@@ -1,7 +1,9 @@
 <template>
   <div class="menu-sidebar">
     <div class="menu-header">
-      <h2 class="menu-title">Pacientes</h2>
+      <button class="menu-title" @click="navegarHome">
+        <h2>Personal health</h2>
+      </button>
     </div>
     <div class="menu-content">
       <div class="patient-list">
@@ -23,7 +25,7 @@
                 v-if="pacienteAbierto === paciente.id" 
                 class="submenu"
               >
-                <button @click="navegar(paciente.id, 'perfil')" class="submenu-item">
+                <button @click="navegar(paciente.id, '')" class="submenu-item">
                   <span class="submenu-icon">📄</span>
                   Perfil
                 </button>
@@ -92,6 +94,10 @@ watch(
     if (newToken) cargarPacientes()
   }
 )
+
+const navegarHome = () => {
+  router.push('/profile') // Cambia esto a la ruta de tu página principal
+}
 </script>
 
 <style scoped>
@@ -124,6 +130,7 @@ watch(
   color: #2d3748;
   margin: 0;
   text-align: center;
+  background-color: transparent;
 }
 
 .menu-content {
@@ -140,6 +147,7 @@ watch(
   margin-top: auto;
   background: rgba(255,255,255,0.05);
 }
+
 .menu-action-btn {
   padding: 0.75rem 1rem;
   border: none;
@@ -151,10 +159,12 @@ watch(
   box-shadow: 0 2px 8px rgba(102,126,234,0.15);
   transition: background 0.2s, transform 0.2s;
 }
+
 .menu-action-btn:hover {
   background: linear-gradient(135deg, #5a6fd8 0%, #6b4190 100%);
   transform: translateY(-2px);
 }
+
 .no-patients {
   color: #fff;
   text-align: center;

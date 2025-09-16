@@ -1,11 +1,8 @@
 <template>
-  <div class="page-container">
-    <CollapsableMenu />
+  <div class="page">
+    
     <div class="main-content">
       <header class="ppv-header">
-        <button class="ppv-btn ppv-btn-back" @click="goBack">
-          ← Paciente
-        </button>
         <div class="ppv-actions">
           <button class="ppv-btn ppv-btn-export" @click="cerrarSesion">
             Cerrar sesión
@@ -37,7 +34,7 @@
 import { ref, onMounted } from 'vue'
 import api from '@/api/axios'
 import { useRouter } from 'vue-router'
-import CollapsableMenu from './CollapsableMenu.vue'
+
 
 /** ID del paciente para las llamadas */
 const props = defineProps({
@@ -115,16 +112,6 @@ onMounted(loadProcedures)
 </script>
 
 <style scoped>
-:root {
-  --ppv-bg: #ffffff;
-  --ppv-header-bg: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  --ppv-border: #e5e7eb;
-  --ppv-hover-bg: #f8fafc;
-  --ppv-btn-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --ppv-btn-hover: linear-gradient(135deg, #5a6fd8 0%, #6b4190 100%);
-  --ppv-btn-text: #ffffff;
-  --ppv-item-hover-animation: hover-scale 150ms ease-in-out;
-}
 
 @keyframes hover-scale {
   from { transform: scale(1); }

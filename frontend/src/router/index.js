@@ -21,24 +21,24 @@ const routes = [
     path: '/patient/:patient_id',
     component: PatientView,
     props: true,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresMenu: true }
   },
   { path: '/patient/:patient_id/procedimientos',
     component: ProcedureListPage,
     props: true,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresMenu: true }
   },
   {
     path: '/patient/:patient_id/alergias',
     component: AllergyListPage,
     props: true,
-    meta: { requiresAuth: true }
-  }
-  , {
+    meta: { requiresAuth: true, requiresMenu: true }
+  },
+  {
     path: '/patient/:patient_id/procedimientos/:procedure_id',
     component: ProcedureDetail,
     props: true,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresMenu: true }
   },
 ]
 
