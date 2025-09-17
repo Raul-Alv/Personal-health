@@ -12,7 +12,7 @@
             <button
               @click="togglePaciente(paciente.id)"
               class="patient-button"
-              :class="{ 'active': pacienteAbierto === patient_id }"
+              :class="{ 'active': pacienteAbierto === paciente.id }"
             >
               <span class="toggle-icon">
                 {{ pacienteAbierto === paciente.id ? '▼' : '▶' }}
@@ -47,7 +47,13 @@
       </div>
     </div>
     <div class="menu-actions">
-      <button class="menu-action-btn">Exportar</button>
+      <button 
+        @click="navegarExportar(pacienteAbierto)" 
+        class="menu-action-btn"
+        :disabled="!pacienteAbierto"
+      >
+        Exportar
+      </button>
       <button class="menu-action-btn">Importar</button>
     </div>
     <div class="resize-handle"></div>
@@ -55,14 +61,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import api from '@/api/axios'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, watch, computed } from 'vue'
+import api, { setApiToken } from '@/api/axios' // Añadir setApiToken
+import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
 const pacientes = ref([])
 const pacienteAbierto = ref(null)
 const token = ref(localStorage.getItem('token'))
+
+// Computed para obtener el ID del paciente actual desde la ruta
+const currentPatientId = computed(() => {
+  // Buscar el ID del paciente en diferentes parámetros de ruta
+  return route.params.patient_id || route.params.id || route.params.patientId || null
+})
 
 const cargarPacientes = async () => {
   try {
@@ -71,6 +84,12 @@ const cargarPacientes = async () => {
     const { data } = await api.get('/mis_pacientes/menu')
     pacientes.value = data
     console.log("pacientes.value", pacientes.value)
+    
+    // Expandir automáticamente el menú del paciente actual si existe
+    if (currentPatientId.value) {
+      pacienteAbierto.value = currentPatientId.value
+      console.log("Expandiendo menú para paciente:", currentPatientId.value)
+    }
   } catch (e) {
     pacientes.value = []
     console.error("Error cargando pacientes:", e)
@@ -80,11 +99,36 @@ const cargarPacientes = async () => {
 const togglePaciente = (id) => {
   pacienteAbierto.value = pacienteAbierto.value === id ? null : id
 }
+
 const navegar = (id, seccion) => {
   router.push(`/patient/${id}/${seccion}`)
 }
 
+const navegarExportar = (patientId) => {
+  if (patientId) {
+    console.log("Navegando a exportar con paciente ID:", patientId)
+    router.push(`/export/`) // Pasar el ID del paciente en la URL
+  } else {
+    alert("Por favor, selecciona un paciente primero")
+  }
+}
+
+const navegarHome = () => {
+  router.push('/profile')
+}
+
 onMounted(cargarPacientes)
+
+// Watch para cuando cambie la ruta
+watch(
+  () => currentPatientId.value,
+  (newPatientId) => {
+    if (newPatientId) {
+      pacienteAbierto.value = newPatientId
+      console.log("Ruta cambió - expandiendo menú para paciente:", newPatientId)
+    }
+  }
+)
 
 watch(
   () => localStorage.getItem('token'),
@@ -94,10 +138,6 @@ watch(
     if (newToken) cargarPacientes()
   }
 )
-
-const navegarHome = () => {
-  router.push('/profile') // Cambia esto a la ruta de tu página principal
-}
 </script>
 
 <style scoped>

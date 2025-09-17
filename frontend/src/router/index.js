@@ -7,6 +7,7 @@ import ProfileView from '../views/ProfileView.vue'
 import ProcedureListPage from '../views/ProcedureListPage.vue'
 import AllergyListPage from '../views/AllergyListPage.vue'
 import ProcedureDetail from '../views/ProcedureDetail.vue'
+import ExportView from '../views/ExportView.vue'
 
 const routes = [
   { path: '/',        component: HomePage },
@@ -40,6 +41,12 @@ const routes = [
     props: true,
     meta: { requiresAuth: true, requiresMenu: true }
   },
+  {
+    path: '/export',
+    component: ExportView,
+    props: true,
+    meta: { requiresAuth: true, requiresMenu: true }
+  }
 ]
 
 export default createRouter({

@@ -747,6 +747,55 @@ def export_patient_data(patient_id: str, token: str = Depends(oauth2_scheme)):
         headers={"Content-Disposition": f"attachment; filename=export_{patient_id}.zip"}
     )
 
+@router.post("/export_seleccionados")
+def exportar_seleccionados(
+    patient_id: str = Form(...),
+    tipo: str = Form(..., description="procedimientos o alergias"),
+    ids: str = Form(..., description="IDs separados por coma"),
+    token: str = Depends(oauth2_scheme)
+):
+    """
+    Exporta solo los procedimientos o alergias seleccionados de un paciente.
+    """
+    usuario_uri = decodificar_token(token)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+    paciente_uri = URIRef(f"{FHIR}Patient/{patient_id}")
+    ask_q = f"""
+    PREFIX ex: <{EX}>
+    ASK {{ <{usuario_uri}> ex:tienePaciente <{paciente_uri}> . }}
+    """
+    if not g_user.query(ask_q).askAnswer:
+        raise HTTPException(status_code=403, detail="Acceso denegado al paciente.")
+
+    export_graph = Graph()
+    id_list = ids.split(",")
+
+    if tipo == "procedimientos":
+        for pid in id_list:
+            proc_uri = URIRef(f"{FHIR}Procedure/{pid}")
+            if (proc_uri, RDF.type, FHIR.Procedure) in g_procedure:
+                copy_subgraph(proc_uri, g_procedure, export_graph)
+
+    elif tipo == "alergias":
+        for aid in id_list:
+            alergia_uri = URIRef(f"{FHIR}AllergyIntolerance/{aid}")
+            if (alergia_uri, RDF.type, FHIR.AllergyIntolerance) in g_allergy:
+                copy_subgraph(alergia_uri, g_allergy, export_graph)
+    else:
+        raise HTTPException(status_code=400, detail="Tipo no válido (usa 'procedimientos' o 'alergias').")
+
+    if len(export_graph) == 0:
+        raise HTTPException(status_code=404, detail="No se encontraron elementos seleccionados.")
+
+    turtle_data = export_graph.serialize(format="turtle")
+
+    return Response(
+        content=turtle_data,
+        media_type="text/turtle",
+        headers={"Content-Disposition": f"attachment; filename=export_{tipo}_{patient_id}.ttl"}
+    )
 
 
 @router.post("/asociar_paciente/")
