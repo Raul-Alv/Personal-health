@@ -752,10 +752,12 @@ def exportar_seleccionados(
     patient_id: str = Form(...),
     tipo: str = Form(..., description="procedimientos o alergias"),
     ids: str = Form(..., description="IDs separados por coma"),
+    incluir_paciente: str = Form("true", description="true/false para incluir datos del paciente"),
     token: str = Depends(oauth2_scheme)
 ):
     """
     Exporta solo los procedimientos o alergias seleccionados de un paciente.
+    Opcionalmente incluye los datos del paciente.
     """
     usuario_uri = decodificar_token(token)
     if not usuario_uri:
@@ -770,33 +772,76 @@ def exportar_seleccionados(
         raise HTTPException(status_code=403, detail="Acceso denegado al paciente.")
 
     export_graph = Graph()
-    id_list = ids.split(",")
+    id_list = [id_item.strip() for id_item in ids.split(",") if id_item.strip()]
+    incluir_datos_paciente = incluir_paciente.lower() == "true"
+    
+    print(f"Debug - Tipo: {tipo}, Patient ID: {patient_id}")
+    print(f"Debug - IDs recibidos: {id_list}")
+    print(f"Debug - Incluir paciente: {incluir_datos_paciente}")
+
+    elementos_encontrados = 0
+
+    # Incluir datos del paciente si está activado el toggle
+    if incluir_datos_paciente:
+        print(f"Debug - Copiando datos del paciente: {paciente_uri}")
+        if (paciente_uri, RDF.type, FHIR.Patient) in g_patient:
+            copy_subgraph(paciente_uri, g_patient, export_graph)
+            print(f"Debug - Datos del paciente copiados exitosamente")
+        else:
+            print(f"Debug - Paciente no encontrado en el grafo: {paciente_uri}")
 
     if tipo == "procedimientos":
         for pid in id_list:
             proc_uri = URIRef(f"{FHIR}Procedure/{pid}")
+            print(f"Debug - Buscando procedimiento: {proc_uri}")
+            
+            # Verificar si existe en el grafo
             if (proc_uri, RDF.type, FHIR.Procedure) in g_procedure:
+                print(f"Debug - Procedimiento encontrado: {proc_uri}")
                 copy_subgraph(proc_uri, g_procedure, export_graph)
+                elementos_encontrados += 1
+            else:
+                print(f"Debug - Procedimiento NO encontrado: {proc_uri}")
 
     elif tipo == "alergias":
         for aid in id_list:
             alergia_uri = URIRef(f"{FHIR}AllergyIntolerance/{aid}")
+            print(f"Debug - Buscando alergia: {alergia_uri}")
+            
+            # Verificar si existe en el grafo
             if (alergia_uri, RDF.type, FHIR.AllergyIntolerance) in g_allergy:
+                print(f"Debug - Alergia encontrada: {alergia_uri}")
                 copy_subgraph(alergia_uri, g_allergy, export_graph)
+                elementos_encontrados += 1
+            else:
+                print(f"Debug - Alergia NO encontrada: {alergia_uri}")
     else:
         raise HTTPException(status_code=400, detail="Tipo no válido (usa 'procedimientos' o 'alergias').")
 
-    if len(export_graph) == 0:
-        raise HTTPException(status_code=404, detail="No se encontraron elementos seleccionados.")
+    print(f"Debug - Elementos encontrados: {elementos_encontrados}")
+    print(f"Debug - Triples en export_graph: {len(export_graph)}")
 
+    # Verificar que hay algo que exportar
+    if len(export_graph) == 0:
+        error_detail = f"No se encontraron elementos para exportar. Tipo: {tipo}, IDs: {id_list}, Elementos encontrados: {elementos_encontrados}, Incluir paciente: {incluir_datos_paciente}"
+        raise HTTPException(status_code=404, detail=error_detail)
+
+    # Configurar namespaces para mejor legibilidad
+    export_graph.namespace_manager.bind("fhir", FHIR, override=True)
     turtle_data = export_graph.serialize(format="turtle")
+
+    # Modificar el nombre del archivo para indicar si incluye datos del paciente
+    suffix = "_con_paciente" if incluir_datos_paciente else "_solo_items"
+    filename = f"export_{tipo}_{patient_id}{suffix}.ttl"
 
     return Response(
         content=turtle_data,
         media_type="text/turtle",
-        headers={"Content-Disposition": f"attachment; filename=export_{tipo}_{patient_id}.ttl"}
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Content-Type": "text/turtle"
+        }
     )
-
 
 @router.post("/asociar_paciente/")
 def asociar_paciente(patient_id: str = Form(...), token: str = Depends(oauth2_scheme)):
