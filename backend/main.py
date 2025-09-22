@@ -991,5 +991,83 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         "email": str(email)
     }
 
+def extraer_valores(g, nodo, profundidad=0, max_profundidad=4):
+    """
+    Extrae los valores legibles de un nodo RDF, siguiendo nodos en blanco hasta cierta profundidad.
+    Devuelve un diccionario plano con claves compuestas.
+    """
+    datos = {}
+    if profundidad > max_profundidad:
+        return datos
+    for p, o in g.predicate_objects(nodo):
+        pred = str(p)
+        if isinstance(o, BNode):
+            subdatos = extraer_valores(g, o, profundidad+1, max_profundidad)
+            for k, v in subdatos.items():
+                datos[f"{pred}__{k}"] = v
+        else:
+            datos[pred] = str(o)
+    return datos
+
+@router.post("/import/preview")
+async def preview_import(files: list[UploadFile] = File(...), token: str = Depends(oauth2_scheme)):
+    usuario_uri = decodificar_token(token)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    datos = []
+    for file in files:
+        g_temp = Graph()
+        content = await file.read()
+        g_temp.parse(data=content, format="ttl")
+        # Extraer pacientes
+        for subj in g_temp.subjects(RDF.type, FHIR.Patient):
+            paciente = {"tipo": "paciente", "datos": extraer_valores(g_temp, subj)}
+            datos.append(paciente)
+        # Extraer procedimientos
+        for subj in g_temp.subjects(RDF.type, FHIR.Procedure):
+            proc = {"tipo": "procedimiento", "datos": extraer_valores(g_temp, subj)}
+            datos.append(proc)
+        # Extraer alergias
+        for subj in g_temp.subjects(RDF.type, FHIR.AllergyIntolerance):
+            alergia = {"tipo": "alergia", "datos": extraer_valores(g_temp, subj)}
+            datos.append(alergia)
+    return datos
+
+
+@router.post("/import/confirm")
+async def confirm_import(files: list[UploadFile] = File(...), token: str = Depends(oauth2_scheme)):
+    usuario_uri = decodificar_token(token)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    pacientes_importados = []
+    for file in files:
+        g_temp = Graph()
+        content = await file.read()
+        g_temp.parse(data=content, format="ttl")
+        # Copiar pacientes
+        for subj in g_temp.subjects(RDF.type, FHIR.Patient):
+            copy_subgraph(subj, g_temp, g_patient)
+            pacientes_importados.append(str(subj).split("/")[-1])
+        # Copiar procedimientos
+        for subj in g_temp.subjects(RDF.type, FHIR.Procedure):
+            copy_subgraph(subj, g_temp, g_procedure)
+        # Copiar alergias
+        for subj in g_temp.subjects(RDF.type, FHIR.AllergyIntolerance):
+            copy_subgraph(subj, g_temp, g_allergy)
+    g_patient.commit()
+    g_procedure.commit()
+    g_allergy.commit()
+    # Asociar usuario con los pacientes importados
+    for pid in pacientes_importados:
+        paciente_uri = URIRef(f"http://hl7.org/fhir/Patient/{pid}")
+        g_user.add((URIRef(usuario_uri), EX.tienePaciente, paciente_uri))
+    g_user.commit()
+    # Decide a dónde redirigir según lo importado
+    if len(pacientes_importados) == 1:
+        return {"redirect": f"/paciente/{pacientes_importados[0]}"}
+    elif len(pacientes_importados) > 1:
+        return {"redirect": "/profile"}
+    else:
+        return {"redirect": "/profile"}
 
 app.include_router(router)

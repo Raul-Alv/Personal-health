@@ -8,6 +8,7 @@ import ProcedureListPage from '../views/ProcedureListPage.vue'
 import AllergyListPage from '../views/AllergyListPage.vue'
 import ProcedureDetail from '../views/ProcedureDetail.vue'
 import ExportView from '../views/ExportView.vue'
+import ImportView from '../views/ImportView.vue'
 
 const routes = [
   { path: '/',        component: HomePage },
@@ -44,6 +45,12 @@ const routes = [
   {
     path: '/export',
     component: ExportView,
+    props: true,
+    meta: { requiresAuth: true, requiresMenu: true }
+  },
+  {
+    path: '/import',
+    component: ImportView,
     props: true,
     meta: { requiresAuth: true, requiresMenu: true }
   }

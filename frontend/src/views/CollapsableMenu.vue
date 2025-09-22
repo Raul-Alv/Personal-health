@@ -54,7 +54,9 @@
       >
         Exportar
       </button>
-      <button class="menu-action-btn">Importar</button>
+      <button  @click="navegarImportar(pacienteAbierto)" 
+        class="menu-action-btn"
+        :disabled="!pacienteAbierto">Importar</button>
     </div>
     <div class="resize-handle"></div>
   </div>
@@ -108,6 +110,15 @@ const navegarExportar = (patientId) => {
   if (patientId) {
     console.log("Navegando a exportar con paciente ID:", patientId)
     router.push(`/export/`) // Pasar el ID del paciente en la URL
+  } else {
+    alert("Por favor, selecciona un paciente primero")
+  }
+}
+
+const navegarImportar = (patientId) => {
+  if (patientId) {
+    console.log("Navegando a importar con paciente ID:", patientId)
+    router.push(`/import/`) // Pasar el ID del paciente en la URL
   } else {
     alert("Por favor, selecciona un paciente primero")
   }
