@@ -1,7 +1,6 @@
 <template>
   <div class="page">
-    
-    <div class="main-content">
+    <div class="ppv-content">
       <header class="ppv-header">
         <div class="ppv-actions">
           <button class="ppv-btn ppv-btn-export" @click="cerrarSesion">
@@ -9,19 +8,29 @@
           </button>
         </div> 
       </header>
-      
       <div class="ppv-list">
         <div
           v-for="proc in procedures"
           :key="proc.id"
-          class="ppv-item"
-          @click="selectProcedure(proc)"
+          class="ppv-item-wrapper"
         >
+          <div
+            class="ppv-item"
+            @click="selectProcedure(proc)"
+          >
             <div class="ppv-item-title">{{ proc.text }}</div>
             <div class="ppv-item-meta">
               <span class="ppv-item-code">{{ proc.code }}</span>
               <span class="ppv-item-date">{{ proc.date }}</span>
             </div>
+          </div>
+          <button
+            class="ppv-delete-btn"
+            @click.stop="deleteProcedure(proc)"
+            title="Eliminar procedimiento"
+          >
+            🗑️
+          </button>
         </div>
         <div v-if="loading" class="ppv-loading">Cargando…</div>
         <div v-if="error" class="ppv-error">Error al cargar</div>
@@ -29,7 +38,6 @@
     </div>
   </div>
 </template>
-
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '@/api/axios'
@@ -101,6 +109,19 @@ async function exportProcedures() {
   }
 }
 
+async function deleteProcedure(proc) {
+  if (!confirm('¿Seguro que quieres eliminar este procedimiento?')) return;
+  try {
+    await api.delete(
+      `/mis_pacientes/${props.patient_id}/delete/procedimientos/${proc.procedure_uri.split('/').pop()}`
+    );
+    procedures.value = procedures.value.filter(p => p.id !== proc.id);
+  } catch (e) {
+    alert('Error al eliminar');
+    console.error(e);
+  }
+}
+
 /** Selecciona uno y emite al padre */
 function selectProcedure(proc) {
   console.log(proc)
@@ -112,159 +133,5 @@ onMounted(loadProcedures)
 </script>
 
 <style scoped>
-
-@keyframes hover-scale {
-  from { transform: scale(1); }
-  to   { transform: scale(1.02); }
-}
-
-.page-container {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  position: fixed;
-  top: 0;
-  left: 0;
-}
-
-.main-content {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background: var(--ppv-bg);
-  overflow: hidden;
-}
-
-.ppv-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  background: var(--ppv-header-bg);
-  border-bottom: 1px solid var(--ppv-border);
-  flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.ppv-actions > .ppv-btn {
-  margin-left: 0.5rem;
-}
-
-.ppv-btn {
-  padding: 0.5rem 1rem;
-  background: var(--ppv-btn-bg);
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  transition: all 120ms ease;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--ppv-btn-text);
-  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
-}
-
-.ppv-btn:hover {
-  background: var(--ppv-btn-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
-}
-
-.ppv-list {
-  flex: 1;
-  padding: 1rem;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.ppv-loading,
-.ppv-error {
-  text-align: center;
-  padding: 2rem;
-  color: #64748b;
-  font-style: italic;
-}
-
-.ppv-error {
-  color: #dc2626;
-}
-
-.ppv-item {
-  padding: 1rem;
-  border: 1px solid var(--ppv-border);
-  border-radius: 0.5rem;
-  margin-bottom: 0.75rem;
-  cursor: pointer;
-  transition: var(--ppv-item-hover-animation);
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.ppv-item:hover {
-  background: var(--ppv-hover-bg);
-  border-color: rgba(102, 126, 234, 0.3);
-  animation: hover-scale;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-  transform: translateY(-1px);
-}
-
-.ppv-item-title {
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 0.5rem;
-  font-size: 1rem;
-}
-
-.ppv-item-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.875rem;
-  color: #64748b;
-}
-
-.ppv-item-code {
-  font-family: monospace;
-  background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  font-weight: 500;
-  color: #0369a1;
-  border: 1px solid rgba(3, 105, 161, 0.2);
-}
-
-.ppv-item-date {
-  font-weight: 500;
-  color: #475569;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .page-container {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-  }
-  
-  .ppv-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-  
-  .ppv-actions {
-    display: flex;
-    justify-content: space-between;
-  }
-  
-  .ppv-actions > .ppv-btn {
-    margin-left: 0;
-    flex: 1;
-    margin-right: 0.25rem;
-  }
-  
-  .ppv-actions > .ppv-btn:last-child {
-    margin-right: 0;
-  }
-}
+@import "@/list.css";
 </style>

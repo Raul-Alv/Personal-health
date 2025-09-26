@@ -14,6 +14,25 @@
   --ppv-item-hover-animation: hover-scale 150ms ease-in-out;
 }
 
+.page-container {
+  display: flex; /* Usar flexbox para alinear el menú y el contenido */
+  height: 100vh; /* Altura completa de la ventana */
+  width: 100vw; /* Ancho completo de la ventana */
+  overflow: hidden; /* Evitar overflow en el contenedor principal */
+}
+
+.menu {
+  flex: 0 0 250px; /* Ancho fijo para el menú */
+  /* Puedes agregar más estilos aquí para el menú */
+}
+
+.main-content {
+  flex: 1; /* El contenido ocupará el resto del espacio */
+  padding: 10px; /* Espaciado alrededor del contenido */
+  background: var(--ppv-bg); /* Fondo del contenido */
+  overflow-y: auto; /* Permitir desplazamiento vertical solo en el contenido */
+}
+
 a {
   font-weight: 500;
   color: #646cff;

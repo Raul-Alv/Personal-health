@@ -1,18 +1,12 @@
 <template>
   <div class="ppv-container">
     <header class="ppv-header">
-      <button class="ppv-btn ppv-btn-back" @click="$emit('back')">
-        ← Paciente
-      </button>
-      <div class="ppv-actions">
-        <button class="ppv-btn ppv-btn-export" @click="exportAllergies">
-          Exportar
-        </button>
-        <button class="ppv-btn ppv-btn-load" @click="loadAllergies">
-          Cargar
-        </button>
-      </div>
-    </header>
+        <div class="ppv-actions">
+          <button class="ppv-btn ppv-btn-export" @click="cerrarSesion">
+            Cerrar sesión
+          </button>
+        </div> 
+      </header>
 
     <div class="ppv-list">
       <div
@@ -100,91 +94,6 @@ function selectProcedure(proc) {
 onMounted(loadAllergies)
 </script>
 
-<style scoped>
-:root {
-  --ppv-bg: #fff;
-  --ppv-header-bg: #f9fafb;
-  --ppv-border: #e5e7eb;
-  --ppv-hover-bg: #f3f4f6;
-  --ppv-btn-bg: #e5e7eb;
-  --ppv-btn-hover: #d1d5db;
-  --ppv-item-hover-animation: hover-scale 150ms ease-in-out;
-}
+<style scoped src="@/list.css">
 
-@keyframes hover-scale {
-  from { transform: scale(1); }
-  to   { transform: scale(1.02); }
-}
-
-.ppv-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: var(--ppv-bg);
-}
-
-.ppv-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  background: var(--ppv-header-bg);
-  border-bottom: 1px solid var(--ppv-border);
-}
-
-.ppv-actions > .ppv-btn {
-  margin-left: 0.5rem;
-}
-
-.ppv-btn {
-  padding: 0.5rem 1rem;
-  background: var(--ppv-btn-bg);
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  transition: background 120ms;
-}
-
-.ppv-btn:hover {
-  background: var(--ppv-btn-hover);
-}
-
-.ppv-list {
-  flex: 1;
-  position: relative;
-  overflow-y: auto;
-}
-
-.ppv-loading,
-.ppv-error {
-  padding: 1rem;
-  text-align: center;
-  color: #6b7280;
-}
-
-.ppv-item {
-  padding: 1rem;
-  border-bottom: 1px solid var(--ppv-border);
-  cursor: pointer;
-  transition: background 120ms, transform 150ms;
-}
-
-.ppv-item:hover {
-  background: var(--ppv-hover-bg);
-  animation: var(--ppv-item-hover-animation);
-}
-
-.ppv-item-title {
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-}
-
-.ppv-item-meta {
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.ppv-item-meta > span + span {
-  margin-left: 1rem;
-}
 </style>

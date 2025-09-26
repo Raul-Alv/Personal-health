@@ -1070,4 +1070,24 @@ async def confirm_import(files: list[UploadFile] = File(...), token: str = Depen
     else:
         return {"redirect": "/profile"}
 
+@router.delete("/mis_pacientes/{patient_id}/delete/procedimientos/{procedure_id}")
+async def delete_procedure(patient_id: str, procedure_id: str, token: str = Depends(oauth2_scheme)):
+    usuario_uri = decodificar_token(token)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    # Eliminar el procedimiento del paciente
+    g_procedure.remove((URIRef(f"http://hl7.org/fhir/Procedure/{procedure_id}"), None, None))
+    g_procedure.commit()
+    return {"detail": "Procedimiento eliminado"}
+
+@router.delete("/mis_pacientes/{patient_id}/delete/alergias/{allergy_id}")
+async def delete_allergy(patient_id: str, allergy_id: str, token: str = Depends(oauth2_scheme)):
+    usuario_uri = decodificar_token(token)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    # Eliminar la alergia del paciente
+    g_allergy.remove((URIRef(f"http://hl7.org/fhir/AllergyIntolerance/{allergy_id}"), None, None))
+    g_allergy.commit()
+    return {"detail": "Alergia eliminada"}
+
 app.include_router(router)
