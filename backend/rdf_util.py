@@ -5,7 +5,7 @@ from pyshex import ShExEvaluator
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from hashlib import sha256
-from login_funcs import hash_password, verify_password, crear_token
+from login_funcs import decodificar_token, hash_password, verify_password, crear_token
 
 FHIR = Namespace("http://hl7.org/fhir/")
 EX = Namespace("http://example.org/fhir/custom#")
@@ -32,6 +32,10 @@ def shex_validate_rdf(rdf_string: str, shex_schema: str) -> bool:
             for triple in g.triples((r.focus, None, None)):
                 print(triple)
 
+def decode_token(token: str) -> str | None:
+    usuario_uri = decodificar_token(token)
+    if not usuario_uri:
+        raise HTTPException(status_code=401, detail="Token inválido")
 
 """ def parse_rdf_string(rdf_string: str) -> dict:
     g = Graph()
