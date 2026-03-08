@@ -21,9 +21,9 @@ def crear_token(usuario_uri: str) -> str:
 
 def decodificar_token(token: str):
     try:
-        print("Token recibido:", token)
+        #print("Token recibido:", token)
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print("Payload decodificado:", payload)
+        #print("Payload decodificado:", payload)
         return payload.get("sub")
     except JWTError as e:
         print("Error al decodificar token:", e)

@@ -6,7 +6,7 @@ from rdflib import RDF, XSD, BNode, Graph, Literal, Namespace, URIRef, Conjuncti
 from rdflib.query import Result
 from rdf_store import  ALERGIAS_GRAPH_ID, PATIENTS_GRAPH_ID, PROCEDURES_GRAPH_ID, USERS_GRAPH_ID, get_allergy_graph, get_store, get_user_graph, get_patient_graph, get_procedure_graph
 from textwrap import dedent
-from rdf_util import copy_subgraph, crear_token, verify_password, save_registraion
+from rdf_util import copy_subgraph, crear_token, decode_token, verify_password, save_registraion
 from login_funcs import hash_password, verify_password, crear_token, decodificar_token
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -513,10 +513,11 @@ def obtener_procedimiento_paciente(patient_id: str, procedure_id: str, token: st
     usuario_uri = decodificar_token(token)
     if not usuario_uri:
         raise HTTPException(status_code=401, detail="Token inválido")
+    
 
     # 2) URI del paciente y verificación de vínculo en grafo de usuarios
     paciente_uri = URIRef(f"http://hl7.org/fhir/Patient/{patient_id}")
-    ask_link = dedent(f"""
+    ask_link = dedent(f""".
         PREFIX ex: <http://example.org/fhir/custom#>
         ASK {{ <{usuario_uri}> ex:tienePaciente <{paciente_uri}> . }}
     """)
@@ -1032,7 +1033,6 @@ async def preview_import(files: list[UploadFile] = File(...), token: str = Depen
             alergia = {"tipo": "alergia", "datos": extraer_valores(g_temp, subj)}
             datos.append(alergia)
     return datos
-
 
 @router.post("/import/confirm")
 async def confirm_import(files: list[UploadFile] = File(...), token: str = Depends(oauth2_scheme)):
