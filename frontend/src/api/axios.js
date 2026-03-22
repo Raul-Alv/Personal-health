@@ -7,33 +7,50 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
-// Función para actualizar el header Authorization cuando el token cambie
+function getValidToken() {
+  const token = localStorage.getItem('token')
+  if (!token || token === 'undefined' || token === 'null' || token.trim() === '') {
+    return null
+  }
+  return token
+}
+
 export function setApiToken(token) {
   if (token) {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    api.defaults.headers.common.Authorization = `Bearer ${token}`
   } else {
-    delete api.defaults.headers.common['Authorization']
+    delete api.defaults.headers.common.Authorization
   }
 }
 
-// Inicializa el header al cargar
-setApiToken(localStorage.getItem('token'))
+setApiToken(getValidToken())
+
 api.interceptors.request.use(config => {
-  console.log(
-    `➡️ Petición Axios: [${config.method.toUpperCase()}]`,
-    config.baseURL + config.url
-  );
-  return config;
-});
+  const token = getValidToken()
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  } else {
+    delete config.headers.Authorization
+  }
+
+  return config
+})
 
 api.interceptors.response.use(
   res => res,
   err => {
     if (err.response?.status === 401) {
       localStorage.removeItem('token')
-      router.push({ name: 'Login' })
+      setApiToken(null)
+
+      if (router.currentRoute.value.name !== 'Login') {
+        router.push({ name: 'Login' })
+      }
     }
+
     return Promise.reject(err)
   }
 )
+
 export default api

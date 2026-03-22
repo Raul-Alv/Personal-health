@@ -59,3 +59,8 @@ class UserRepo:
                 info["apellido"] = str(name_rows[0].family)
             patients.append(info)
         return patients
+
+    def update_profile(self, user_uri: str, nombre: str, email: str) -> None:
+        g_user = get_user_graph()
+        g_user.update(queries.UPDATE_USER_PROFILE.format(user_uri=user_uri, nombre=nombre, email=email))
+        g_user.commit()
