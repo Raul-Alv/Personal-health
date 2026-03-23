@@ -1,13 +1,14 @@
-from fastapi import Depends
+from rdflib import BNode, Graph
 
-from api.deps import require_patient_access
-from rdf_store import get_store, get_patient_graph
-from backend.sparql import queries
+from rdf_store import get_patient_graph, get_store
+from rdf_util import copy_subgraph
+from sparql import queries
+
 
 class PatientRepo:
     def list_all(self) -> list[dict]:
         g_patient = get_patient_graph()
-        out = list[dict]()
+        out: list[dict] = []
         for row in g_patient.query(queries.GET_ALL_PATIENTS):
             out.append(
                 {
@@ -70,4 +71,3 @@ class PatientRepo:
             else:
                 g_patient.add((patient_uri, predicate, obj))
         g_patient.commit()
-

@@ -1,9 +1,8 @@
 from rdflib import URIRef
 
 from rdf_store import get_allergy_graph, get_store
-from backend.sparql import queries 
+from sparql import queries
 
-FHIR_PATIENT_PREFIX = "Patient/"
 
 class AllergyRepo:
     def list_by_patient(self, patient_id: str) -> list[dict]:
@@ -23,7 +22,7 @@ class AllergyRepo:
                 }
             )
         return out
-    
+
     def delete(self, allergy_id: str) -> None:
         g = get_allergy_graph()
         g.remove((URIRef(f"http://hl7.org/fhir/AllergyIntolerance/{allergy_id}"), None, None))

@@ -1,5 +1,8 @@
-from rdf_store import get_user_graph, get_patient_graph
-from backend.sparql import queries
+from rdflib import URIRef
+
+from rdf_store import get_patient_graph, get_user_graph
+from sparql import queries
+
 
 class UserRepo:
     def exists_by_email(self, email: str) -> bool:
@@ -17,7 +20,7 @@ class UserRepo:
             )
         )
         g_user.commit()
-    
+
     def get_by_email(self, email: str) -> tuple[str, str] | None:
         g_user = get_user_graph()
         rows = list(g_user.query(queries.GET_USER_BY_EMAIL.format(email=email)))
@@ -33,34 +36,32 @@ class UserRepo:
             return None
         row = rows[0]
         return {"usuario_uri": user_uri, "nombre": str(row.nombre), "email": str(row.email)}
-    
+
+    def list_my_patients(self, user_uri: str) -> list[dict]:
+        g_user = get_user_graph()
+        g_patient = get_patient_graph()
+        rows = g_user.query(queries.GET_USER_PATIENTS.format(user_uri=user_uri))
+        output: list[dict] = []
+        for row in rows:
+            patient_uri = str(row.patient)
+            name_rows = list(g_patient.query(queries.GET_NAME_SURNAME.format(patient_uri=patient_uri)))
+            item = {"id": patient_uri.split("/")[-1], "uri": patient_uri}
+            if name_rows:
+                first = name_rows[0]
+                if getattr(first, "given", None):
+                    item["nombre"] = str(first.given)
+                if getattr(first, "family", None):
+                    item["apellido"] = str(first.family)
+            output.append(item)
+        return output
+
     def link_patient(self, user_uri: str, patient_uri: str) -> None:
         g_user = get_user_graph()
         g_user.update(queries.LINK_USER_PATIENT.format(user_uri=user_uri, patient_uri=patient_uri))
         g_user.commit()
 
-    def has_patient_access(self, user_uri: str, patient_uri: str) -> bool:
+    def has_patient_access(self, user_uri: str, patient_uri: str | URIRef) -> bool:
         g_user = get_user_graph()
-        return g_user.query(queries.ASK_USER_HAS_PATIENT.format(user_uri=user_uri, patient_uri=patient_uri)).askAnswer
-
-    def list_my_patients(self, user_uri: str) -> list[dict]:
-        g_user = get_user_graph()
-        g_patient = get_patient_graph()
-
-        q = queries.GET_USER_PATIENTS.format(user_uri=user_uri)
-        patients = []
-        for row in g_user.query(q):
-            p_uri = str(row.patient)
-            name_q = queries.GET_NAME_SURNAME.format(patient_uri=p_uri)
-            name_rows = list(g_patient.query(name_q))
-            info = {"id": p_uri.split("/")[-1]}
-            if name_rows:
-                info["nombre"] = str(name_rows[0].given)
-                info["apellido"] = str(name_rows[0].family)
-            patients.append(info)
-        return patients
-
-    def update_profile(self, user_uri: str, nombre: str, email: str) -> None:
-        g_user = get_user_graph()
-        g_user.update(queries.UPDATE_USER_PROFILE.format(user_uri=user_uri, nombre=nombre, email=email))
-        g_user.commit()
+        return g_user.query(
+            queries.ASK_USER_HAS_PATIENT.format(user_uri=user_uri, patient_uri=str(patient_uri))
+        ).askAnswer

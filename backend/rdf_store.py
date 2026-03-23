@@ -1,37 +1,37 @@
-from rdflib import ConjunctiveGraph, URIRef
-import rdflib_sqlalchemy   # esto registra automáticamente el plugin "SQLAlchemy" en rdflib
+from pathlib import Path
 
-# URL de tu base de datos (SQLite en este ejemplo)
-DATABASE_URL = "sqlite:///data/triplestore.db"
+from rdflib import ConjunctiveGraph, URIRef
+import rdflib_sqlalchemy  # noqa: F401  # registra el plugin SQLAlchemy en rdflib
+
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
+DATA_DIR.mkdir(exist_ok=True)
+DATABASE_URL = f"sqlite:///{DATA_DIR / 'triplestore.db'}"
 
 USERS_GRAPH_ID = URIRef("urn:app_salud:usuarios")
-PATIENTS_GRAPH_ID    = URIRef("urn:app_salud:pacientes")
+PATIENTS_GRAPH_ID = URIRef("urn:app_salud:pacientes")
 PROCEDURES_GRAPH_ID = URIRef("urn:app_salud:procedimientos")
 ALERGIAS_GRAPH_ID = URIRef("urn:app_salud:alergias")
 
-# Creamos/abrimos el grafo persistido
-g = ConjunctiveGraph('SQLAlchemy')
-g.open(DATABASE_URL, create=True)
+_store = ConjunctiveGraph("SQLAlchemy")
+_store.open(DATABASE_URL, create=True)
 
-# Creamos/abrimos el Store como ConjunctiveGraph
-store = ConjunctiveGraph('SQLAlchemy')
-store.open(DATABASE_URL, create=True)
 
 def get_store() -> ConjunctiveGraph:
-    """
-    Devuelve el store completo (unión de todos los grafos).
-    Queries sobre este grafo verán la unión de todos los contexts.
-    """
-    return store
+    return _store
 
-def get_user_graph() -> ConjunctiveGraph:
-    return store.get_context(USERS_GRAPH_ID)
 
-def get_patient_graph() -> ConjunctiveGraph:
-    return store.get_context(PATIENTS_GRAPH_ID)
+def get_user_graph():
+    return _store.get_context(USERS_GRAPH_ID)
 
-def get_procedure_graph() -> ConjunctiveGraph:
-    return store.get_context(PROCEDURES_GRAPH_ID)
 
-def get_allergy_graph() -> ConjunctiveGraph:
-    return store.get_context(ALERGIAS_GRAPH_ID)
+def get_patient_graph():
+    return _store.get_context(PATIENTS_GRAPH_ID)
+
+
+def get_procedure_graph():
+    return _store.get_context(PROCEDURES_GRAPH_ID)
+
+
+def get_allergy_graph():
+    return _store.get_context(ALERGIAS_GRAPH_ID)

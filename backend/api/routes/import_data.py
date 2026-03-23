@@ -1,23 +1,36 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
-from api.deps import require_patient_access
-from repositories.procedure_repo import ProcedureRepo
-from rdf_util import resource_uri
+from api.deps import get_current_user_uri
+from services.import_service import ImportService
 
 router = APIRouter()
 
 
-@router.get("/mis_pacientes/{patient_id}/get/procedimientos")
-def obtener_procedimientos_paciente(patient_id: str, access=Depends(require_patient_access)):
-    return ProcedureRepo().list_by_patient(patient_id)
+@router.post("/upload/")
+async def upload_rdf_shex(
+    rdf_file: UploadFile = File(...),
+    shex_file: UploadFile = File(...),
+    user_uri: str = Depends(get_current_user_uri),
+):
+    rdf_bytes = await rdf_file.read()
+    shex_bytes = await shex_file.read()
+    result = ImportService().import_ttl_with_shex(user_uri=user_uri, rdf_bytes=rdf_bytes, shex_bytes=shex_bytes)
+    if not result["ok"]:
+        raise HTTPException(status_code=400, detail={"validation_errors": result["errors"]})
+    return {k: v for k, v in result.items() if k != "ok"} | {"status": "ok"}
 
 
-@router.get("/mis_pacientes/{patient_id}/get/procedimientos/{procedure_id}")
-def obtener_procedimiento_paciente(patient_id: str, procedure_id: str, access=Depends(require_patient_access)):
-    return ProcedureRepo().get_detail(str(resource_uri("Procedure", procedure_id)))
+@router.post("/import/preview")
+async def preview_import(files: list[UploadFile] = File(...), user_uri: str = Depends(get_current_user_uri)):
+    payload = []
+    for file in files:
+        payload.append((file.filename or "archivo.ttl", await file.read()))
+    return ImportService().preview_files(payload)
 
 
-@router.delete("/mis_pacientes/{patient_id}/delete/procedimientos/{procedure_id}")
-def delete_procedure(patient_id: str, procedure_id: str, access=Depends(require_patient_access)):
-    ProcedureRepo().delete(procedure_id)
-    return {"detail": "Procedimiento eliminado"}
+@router.post("/import/confirm")
+async def confirm_import(files: list[UploadFile] = File(...), user_uri: str = Depends(get_current_user_uri)):
+    payload = []
+    for file in files:
+        payload.append((file.filename or "archivo.ttl", await file.read()))
+    return ImportService().confirm_files(user_uri=user_uri, files=payload)
