@@ -18,16 +18,25 @@
         <button
           v-if="!isEditing"
           @click="startEdit"
-          class="btn edit-btn">Editar</button>
+          class="btn edit-btn"
+        >
+          Editar
+        </button>
 
-        <button
-          v-if="isEditing"
-          @click="saveEdit"
-          class="btn save-btn edit-container">Guardar</button>
-        <button
-          v-if="isEditing"
-          @click="cancelEdit"
-          class="btn cancel-btn edit-container">Cancelar</button>
+        <div v-else class="edit-actions">
+          <button
+            @click="openConfirmSave"
+            class="btn save-btn"
+          >
+            Guardar
+          </button>
+          <button
+            @click="cancelEdit"
+            class="btn cancel-btn"
+          >
+            Cancelar
+          </button>
+        </div>
       
         <div class="field">
           <label>Género:</label>
@@ -110,29 +119,71 @@
       <div class="divider–vertical"></div>
 
       <!-- COLUMNA DERECHA: ACCIONES -->
+      <!-- COLUMNA DERECHA: ACCIONES -->
       <aside class="actions">
-        <button class="btn secondary" @click="goProcedures">Ver procedimientos</button>
-        <button class="btn secondary" @click="goAllergies">Ver alergias</button>
-        <button class="btn primary"   @click="doExport">Exportar</button>
+        <button
+          class="btn secondary"
+          @click="goProcedures"
+          :disabled="isEditing"
+        >
+          Ver procedimientos
+        </button>
+
+        <button
+          class="btn secondary"
+          @click="goAllergies"
+          :disabled="isEditing"
+        >
+          Ver alergias
+        </button>
+
+        <button
+          class="btn primary"
+          @click="doExport"
+          :disabled="isEditing"
+        >
+          Exportar
+        </button>
       </aside>
+    </div>
+  </div>
+  <!-- Modal confirmar guardado -->
+  <div v-if="showSaveConfirm" class="modal-backdrop">
+    <div class="modal-box">
+      <h3>Confirmar edición</h3>
+      <p>¿Quieres guardar los cambios de este perfil?</p>
+      <div class="modal-actions">
+        <button class="btn save-btn" @click="confirmSave">Sí, guardar</button>
+        <button class="btn cancel-btn" @click="showSaveConfirm = false">No</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal guardado correcto -->
+  <div v-if="showSavedMessage" class="modal-backdrop">
+    <div class="modal-box">
+      <h3>Cambios guardados</h3>
+      <p>El perfil se ha actualizado correctamente.</p>
+      <div class="modal-actions">
+        <button class="btn save-btn" @click="showSavedMessage = false">Aceptar</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api/axios'
 
-// Props
 const props = defineProps({
   patient_id: { type: String, required: true }
 })
 
-// Router
+const emit = defineEmits(['update-patient'])
+
 const router = useRouter()
 
-// Estado reactivo
 const patient = reactive({
   nombre: '',
   apellido: '',
@@ -149,70 +200,141 @@ const patient = reactive({
     pais: ''
   }
 })
+
 const showSSN = ref(false)
 const error = ref('')
+const isEditing = ref(false)
+const showSaveConfirm = ref(false)
+const showSavedMessage = ref(false)
 
-// Computed para la máscara
+const original = ref({})
+const edited = reactive({
+  nombre: '',
+  apellido: '',
+  genero: '',
+  fecha_nacimiento: '',
+  estado_civil: '',
+  telefono: '',
+  ssn: '',
+  address: {
+    calle: '',
+    cp: '',
+    ciudad: '',
+    provincia: '',
+    pais: ''
+  }
+})
+
 const maskedSSN = computed(() =>
-  patient.ssn.replace(/.(?=.{4})/g, '*')
+  (patient.ssn || '').replace(/.(?=.{4})/g, '*')
 )
 
-const emit = defineEmits(['update-patient'])
+function fillEditedFromPatient() {
+  edited.nombre = patient.nombre
+  edited.apellido = patient.apellido
+  edited.genero = patient.genero
+  edited.fecha_nacimiento = patient.fecha_nacimiento
+  edited.estado_civil = patient.estado_civil
+  edited.telefono = patient.telefono
+  edited.ssn = patient.ssn
+  edited.address = {
+    calle: patient.address.calle,
+    cp: patient.address.cp,
+    ciudad: patient.address.ciudad,
+    provincia: patient.address.provincia,
+    pais: patient.address.pais
+  }
+}
 
-const isEditing = ref(false)
-const original = ref({})
-const edited = reactive({})
+function resetPatient() {
+  patient.nombre = ''
+  patient.apellido = ''
+  patient.genero = ''
+  patient.fecha_nacimiento = ''
+  patient.estado_civil = ''
+  patient.telefono = ''
+  patient.ssn = ''
+  patient.address.calle = ''
+  patient.address.cp = ''
+  patient.address.ciudad = ''
+  patient.address.provincia = ''
+  patient.address.pais = ''
+}
 
-// Inicia la edición: clonamos paciente a original y edited
 function startEdit() {
   original.value = JSON.parse(JSON.stringify(patient))
-  Object.assign(edited, JSON.parse(JSON.stringify(patient)))
+  fillEditedFromPatient()
   isEditing.value = true
 }
 
-// Maneja cambios en contenteditable
+function openConfirmSave() {
+  showSaveConfirm.value = true
+}
+
 function onInput(field, event) {
-  edited[field] = event.target.innerText.trim()
+  const value = event.target.innerText.trim()
+
+  const addressFields = ['calle', 'cp', 'ciudad', 'provincia', 'pais']
+  if (addressFields.includes(field)) {
+    edited.address[field] = value
+    return
+  }
+
+  edited[field] = value
 }
 
-// Guarda cambios: emitimos y actualizamos prop local
-function saveEdit() {
-  emit('update-patient', JSON.parse(JSON.stringify(edited)))
-  Object.assign(patient, edited)
-  isEditing.value = false
+async function confirmSave() {
+  try {
+    showSaveConfirm.value = false
+
+    const payload = JSON.parse(JSON.stringify(edited))
+    await emit('update-patient', payload)
+
+    Object.assign(patient, payload)
+    patient.address = { ...payload.address }
+
+    isEditing.value = false
+    showSavedMessage.value = true
+  } catch (e) {
+    console.error(e)
+    error.value = 'No se pudieron guardar los cambios'
+  }
 }
 
-// Cancela: revertimos a original
 function cancelEdit() {
-  Object.assign(patient, original.value)
+  Object.assign(patient, JSON.parse(JSON.stringify(original.value)))
   isEditing.value = false
+  showSaveConfirm.value = false
 }
 
-// Fetch de datos
 async function fetchPatientDatos() {
   try {
-    console.log('➡️ fetchPatientDatos() llamado')
-    console.log('URL a la que llamaría:', api.getUri({ url: `/mis_pacientes/${props.patient_id}/get/datos` }))
-    const { data: rows } = await api.get(
-      `/mis_pacientes/${props.patient_id}/get/datos`
-    )
+    error.value = ''
+    resetPatient()
+    isEditing.value = false
+    showSaveConfirm.value = false
+
+    const { data: rows } = await api.get(`/mis_pacientes/${props.patient_id}/get/datos`)
+
     if (!rows.length) {
       error.value = 'No se encontraron datos del paciente'
       return
     }
+
     const row = rows[0]
-    patient.nombre           = row.nombre || ''
-    patient.apellido         = row.apellidos || ''
-    patient.genero           = row.genero || ''
+
+    patient.nombre = row.nombre || ''
+    patient.apellido = row.apellidos || ''
+    patient.genero = row.genero || ''
     patient.fecha_nacimiento = row.fechaNacimiento || ''
-    patient.estado_civil     = row.estado_civil || ''
-    patient.telefono         = row.telefono || ''
-    patient.ssn              = row.ss || ''
-    patient.address.calle    = row.calle || ''
-    patient.address.cp       = row.cp || ''
-    patient.address.ciudad   = row.ciudad || ''
-    patient.address.provincia= row.provincia || ''
-    patient.address.pais     = row.pais || ''
+    patient.estado_civil = row.estado_civil || ''
+    patient.telefono = row.telefono || ''
+    patient.ssn = row.ss || ''
+    patient.address.calle = row.calle || ''
+    patient.address.cp = row.cp || ''
+    patient.address.ciudad = row.ciudad || ''
+    patient.address.provincia = row.provincia || ''
+    patient.address.pais = row.pais || ''
   } catch (e) {
     error.value =
       e.response?.data?.detail ||
@@ -221,127 +343,224 @@ async function fetchPatientDatos() {
   }
 }
 
-// Navegación y export
 function goProcedures() {
+  if (isEditing.value) return
   router.push(`/patient/${props.patient_id}/procedimientos`)
 }
+
 function goAllergies() {
+  if (isEditing.value) return
   router.push(`/patient/${props.patient_id}/alergias`)
 }
+
 function doExport() {
-  window.open(
-    `${api.defaults.baseURL}/export_all/${props.patient_id}`,
-    '_blank'
-  )
+  if (isEditing.value) return
+  window.open(`${api.defaults.baseURL}/export_all/${props.patient_id}`, '_blank')
 }
 
-// Al montar, carga datos
 onMounted(fetchPatientDatos)
+
+watch(
+  () => props.patient_id,
+  async (newId, oldId) => {
+    if (!newId || newId === oldId) return
+    await fetchPatientDatos()
+  }
+)
 </script>
 
 <style scoped>
-.page {
-  min-height: 100vh;
-  background: #ecf0f1;
+
+.avatar {
+  width: 70px;
+  height: 70px;
+  color: #3b82f6;
+  background: #eff6ff;
+  padding: 12px;
+  border-radius: 50%;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;   /* clave */
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-top: 0.4rem;
+}
+/* CONTENEDOR PRINCIPAL */
+.patient-container {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* COLUMNA IZQUIERDA */
+.patient-main {
+  flex: 1;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 1.2rem;
+  border: 1px solid #e5e7eb;
+}
+
+/* COLUMNA DERECHA */
+.actions {
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* TÍTULO */
+.patient-main h2 {
+  margin-bottom: 0.8rem;
+  font-size: 1.3rem;
+  color: #1f2937;
+}
+
+/* CAMPOS */
+.patient-main p {
+  margin: 0.3rem 0;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.patient-main strong {
+  color: #111827;
+}
+
+/* BOTONES BASE */
+.btn {
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+/* COLORES BOTONES */
+.edit-btn {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.edit-btn:hover {
+  background: #bae6fd;
+}
+
+.save-btn {
+  background: #22c55e;
+  color: white;
+}
+
+.save-btn:hover {
+  background: #16a34a;
+}
+
+.cancel-btn {
+  background: #ef4444;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background: #dc2626;
+}
+
+.secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.secondary:hover {
+  background: #e5e7eb;
+}
+
+.primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.primary:hover {
+  background: #2563eb;
+}
+
+/* DESHABILITADO */
+.actions .btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* EDICIÓN */
+.edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+}
+
+/* CAMPOS EDITABLES */
+[contenteditable="true"] {
+  background: #f9fafb;
+  border-bottom: 1px dashed #9ca3af;
+  padding: 1px 3px;
+}
+
+/* MODAL (más compacto) */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.card {
-  position: relative;
-  background: #2c3e50;
+
+.modal-box {
+  background: white;
   border-radius: 8px;
-  padding: 2rem;
-  width: 500px;
-  color: #ecf0f1;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-}
-.title {
-  text-align: center;
-  margin-bottom: 1.5rem;
-  font-size: 1.5rem;
-}
-.field, .ssn-field {
-  display: flex;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-.field label, .ssn-field label {
-  flex: 0 0 140px;
-  font-weight: 600;
-}
-.value {
-  flex: 1;
-  background: #ecf0f1;
-  color: #2c3e50;
-  padding: 0.5rem;
-  border-radius: 4px;
-}
-.address {
-  border: 1px solid rgba(236,240,241,0.4);
   padding: 1rem;
-  border-radius: 6px;
-  margin-bottom: 1.5rem;
+  min-width: 260px;
+  max-width: 90vw;
 }
-.address legend {
-  padding: 0 0.5rem;
-  font-weight: 600;
+
+.modal-box h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  color: #1f2937;
 }
-.subfield {
-  display: flex;
-  align-items: center;
-  margin-bottom: 0.75rem;
+
+.modal-box p {
+  font-size: 0.85rem;
+  color: #4b5563;
 }
-.subfield label {
-  flex: 0 0 100px;
-  font-size: 0.9rem;
-}
-.edit-btn {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-}
-.actions {
+
+.modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.75rem;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
 }
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  border: none;
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  padding: 0.6rem 1.2rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
-}
-.btn .icon {
-  width: 1em;
-  height: 1em;
-}
-.btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  filter: brightness(1.1);
-}
-.primary {
-  background: #e67e22;
-  color: #fff;
-}
-.secondary {
-  background: #34495e;
-  color: #ecf0f1;
-}
-.eye-btn {
-  background: transparent;
-  padding: 0.3rem;
-  margin-left: 0.5rem;
-  color: #ecf0f1;
-}
-.eye-btn:hover {
-  color: #e67e22;
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .patient-container {
+    flex-direction: column;
+  }
+
+  .actions {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
 }
 </style>
