@@ -133,9 +133,4 @@ async function confirmImport() {
 }
 </script>
 
-<style scoped>
-.import-container { max-width: 600px; margin: 2rem auto; }
-.preview-section { margin-top: 2rem; }
-.preview-item { border: 1px solid #eee; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
-.label { font-weight: bold; }
-</style>
+<style scoped src="@/styles/views/ImportView.css"></style>

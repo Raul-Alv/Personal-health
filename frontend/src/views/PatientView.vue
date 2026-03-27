@@ -5,7 +5,6 @@
       class="overlay"
     ></div>
     <div class="container">
-      <!-- COLUMNA IZQUIERDA: DETALLES -->
       <section class="details">
         <header class="header">
           <svg class="avatar" viewBox="0 0 24 24" fill="currentColor">
@@ -14,7 +13,7 @@
           <h1 class="name">{{ patient.nombre }} {{ patient.apellido }}</h1>
         </header>
         <hr class="divider–horizontal" />
-        <!-- Botones -->
+
         <button
           v-if="!isEditing"
           @click="startEdit"
@@ -37,34 +36,38 @@
             Cancelar
           </button>
         </div>
-      
+
         <div class="field">
           <label>Género:</label>
           <span
-          :contenteditable="isEditing"
-          @input="onInput('genero', $event)"
-          class="editable-field">{{ patient.genero }}</span>
+            :contenteditable="isEditing"
+            @input="onInput('genero', $event)"
+            class="editable-field"
+          >{{ patient.genero }}</span>
         </div>
         <div class="field">
           <label>Fecha de nacimiento:</label>
           <span
-          :contenteditable="isEditing"
-          @input="onInput('fecha_nacimiento', $event)"
-          class="editable-field">{{ patient.fecha_nacimiento }}</span>
+            :contenteditable="isEditing"
+            @input="onInput('fecha_nacimiento', $event)"
+            class="editable-field"
+          >{{ patient.fecha_nacimiento }}</span>
         </div>
         <div class="field">
           <label>Estado civil:</label>
           <span
-          :contenteditable="isEditing"
-          @input="onInput('estado_civil', $event)"
-          class="editable-field">{{ patient.estado_civil }}</span>
+            :contenteditable="isEditing"
+            @input="onInput('estado_civil', $event)"
+            class="editable-field"
+          >{{ patient.estado_civil }}</span>
         </div>
         <div class="field ssn-field">
           <label>Seguridad Social:</label>
           <span
-          :contenteditable="isEditing"
-          @input="onInput('ssn', $event)"
-          class="editable-field">{{ showSSN ? patient.ssn : maskedSSN }}</span>
+            :contenteditable="isEditing"
+            @input="onInput('ssn', $event)"
+            class="editable-field"
+          >{{ showSSN ? patient.ssn : maskedSSN }}</span>
           <button class="eye-btn" @click="showSSN = !showSSN" :aria-label="showSSN ? 'Ocultar' : 'Mostrar'">
             <svg v-if="!showSSN" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 5c-7.633 0-11 6.5-11 6.5s3.367 6.5 11 6.5 11-6.5 11-6.5S19.633 5 12 5zm0 11a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
@@ -81,45 +84,48 @@
           <div class="subfield">
             <label>Calle:</label>
             <span
-            :contenteditable="isEditing"
-            @input="onInput('calle', $event)"
-            class="editable-field">{{ patient.address.calle }}</span>
+              :contenteditable="isEditing"
+              @input="onInput('calle', $event)"
+              class="editable-field"
+            >{{ patient.address.calle }}</span>
           </div>
           <div class="subfield">
             <label>CP:</label>
             <span
-            :contenteditable="isEditing"
-            @input="onInput('cp', $event)"
-            class="editable-field">{{ patient.address.cp }}</span>
+              :contenteditable="isEditing"
+              @input="onInput('cp', $event)"
+              class="editable-field"
+            >{{ patient.address.cp }}</span>
           </div>
           <div class="subfield">
             <label>Ciudad:</label>
             <span
-            :contenteditable="isEditing"
-            @input="onInput('ciudad', $event)"
-            class="editable-field">{{ patient.address.ciudad }}</span>
+              :contenteditable="isEditing"
+              @input="onInput('ciudad', $event)"
+              class="editable-field"
+            >{{ patient.address.ciudad }}</span>
           </div>
           <div class="subfield">
             <label>Provincia:</label>
             <span
-            :contenteditable="isEditing"
-            @input="onInput('provincia', $event)"
-            class="editable-field">{{ patient.address.provincia }}</span>
+              :contenteditable="isEditing"
+              @input="onInput('provincia', $event)"
+              class="editable-field"
+            >{{ patient.address.provincia }}</span>
           </div>
           <div class="subfield">
             <label>País:</label>
             <span
-            :contenteditable="isEditing"
-            @input="onInput('pais', $event)"
-            class="editable-field">{{ patient.address.pais }}</span>
+              :contenteditable="isEditing"
+              @input="onInput('pais', $event)"
+              class="editable-field"
+            >{{ patient.address.pais }}</span>
           </div>
         </fieldset>
       </section>
 
       <div class="divider–vertical"></div>
 
-      <!-- COLUMNA DERECHA: ACCIONES -->
-      <!-- COLUMNA DERECHA: ACCIONES -->
       <aside class="actions">
         <button
           class="btn secondary"
@@ -147,7 +153,7 @@
       </aside>
     </div>
   </div>
-  <!-- Modal confirmar guardado -->
+
   <div v-if="showSaveConfirm" class="modal-backdrop">
     <div class="modal-box">
       <h3>Confirmar edición</h3>
@@ -159,7 +165,6 @@
     </div>
   </div>
 
-  <!-- Modal guardado correcto -->
   <div v-if="showSavedMessage" class="modal-backdrop">
     <div class="modal-box">
       <h3>Cambios guardados</h3>
@@ -426,198 +431,4 @@ watch(
 )
 </script>
 
-<style scoped>
-
-.avatar {
-  width: 70px;
-  height: 70px;
-  color: #3b82f6;
-  background: #eff6ff;
-  padding: 12px;
-  border-radius: 50%;
-}
-
-.header {
-  display: flex;
-  flex-direction: column;   /* clave */
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
-.name {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin-top: 0.4rem;
-}
-/* CONTENEDOR PRINCIPAL */
-.patient-container {
-  display: flex;
-  gap: 1.5rem;
-  padding: 1.2rem;
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
-/* COLUMNA IZQUIERDA */
-.patient-main {
-  flex: 1;
-  background: #ffffff;
-  border-radius: 10px;
-  padding: 1.2rem;
-  border: 1px solid #e5e7eb;
-}
-
-/* COLUMNA DERECHA */
-.actions {
-  width: 220px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-/* TÍTULO */
-.patient-main h2 {
-  margin-bottom: 0.8rem;
-  font-size: 1.3rem;
-  color: #1f2937;
-}
-
-/* CAMPOS */
-.patient-main p {
-  margin: 0.3rem 0;
-  font-size: 0.9rem;
-  color: #374151;
-}
-
-.patient-main strong {
-  color: #111827;
-}
-
-/* BOTONES BASE */
-.btn {
-  border: none;
-  border-radius: 6px;
-  padding: 0.4rem 0.7rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: 0.15s ease;
-}
-
-/* COLORES BOTONES */
-.edit-btn {
-  background: #e0f2fe;
-  color: #0369a1;
-}
-
-.edit-btn:hover {
-  background: #bae6fd;
-}
-
-.save-btn {
-  background: #22c55e;
-  color: white;
-}
-
-.save-btn:hover {
-  background: #16a34a;
-}
-
-.cancel-btn {
-  background: #ef4444;
-  color: white;
-}
-
-.cancel-btn:hover {
-  background: #dc2626;
-}
-
-.secondary {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.secondary:hover {
-  background: #e5e7eb;
-}
-
-.primary {
-  background: #3b82f6;
-  color: white;
-}
-
-.primary:hover {
-  background: #2563eb;
-}
-
-/* DESHABILITADO */
-.actions .btn:disabled {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-/* EDICIÓN */
-.edit-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.8rem;
-}
-
-/* CAMPOS EDITABLES */
-[contenteditable="true"] {
-  background: #f9fafb;
-  border-bottom: 1px dashed #9ca3af;
-  padding: 1px 3px;
-}
-
-/* MODAL (más compacto) */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-box {
-  background: white;
-  border-radius: 8px;
-  padding: 1rem;
-  min-width: 260px;
-  max-width: 90vw;
-}
-
-.modal-box h3 {
-  margin: 0 0 0.4rem;
-  font-size: 1rem;
-  color: #1f2937;
-}
-
-.modal-box p {
-  font-size: 0.85rem;
-  color: #4b5563;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.4rem;
-  margin-top: 0.7rem;
-}
-
-/* RESPONSIVE */
-@media (max-width: 768px) {
-  .patient-container {
-    flex-direction: column;
-  }
-
-  .actions {
-    width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-}
-</style>
+<style scoped src="@/styles/views/PatientView.css"></style>

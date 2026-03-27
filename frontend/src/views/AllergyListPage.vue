@@ -86,7 +86,7 @@ async function exportAllergies() {
 }
 
 /** Selecciona uno y emite al padre */
-function selectProcedure(proc) {
+function selectAllergy(proc) {
   emit('select', proc)
 }
 
@@ -94,6 +94,4 @@ function selectProcedure(proc) {
 onMounted(loadAllergies)
 </script>
 
-<style scoped src="@/list.css">
-
-</style>
+<style scoped src="@/styles/views/AllergyListPage.css"></style>

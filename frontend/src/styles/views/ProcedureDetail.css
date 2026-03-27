@@ -1,0 +1,242 @@
+.procedure-detail-layout {
+  min-height: 100%;
+  padding: 24px;
+}
+
+.procedure-backbar {
+  margin-bottom: 16px;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-soft);
+  font-weight: 600;
+}
+
+.back-btn:hover {
+  color: var(--color-primary);
+}
+
+.procedure-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 40%);
+  gap: 24px;
+}
+
+.procedure-data-panel,
+.dental-map-box,
+.modal-content {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.procedure-data-panel {
+  padding: 28px;
+}
+
+.panel-header,
+.panel-actions,
+.field-grid,
+.legend,
+.modal-footer {
+  display: flex;
+  gap: 12px;
+}
+
+.panel-header,
+.modal-footer {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.field-grid {
+  flex-wrap: wrap;
+}
+
+.field-card {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+}
+
+.field-card-full {
+  flex-basis: 100%;
+}
+
+.detail-title,
+.section-title,
+.modal-title {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-text-soft);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.detail-value {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.detail-value.monospace {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.9rem;
+  word-break: break-word;
+}
+
+.icon-btn,
+.action-btn {
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-weight: 700;
+  border: 1px solid var(--color-border);
+}
+
+.icon-btn {
+  min-width: 44px;
+  padding: 10px;
+  background: var(--color-surface);
+  color: var(--color-danger);
+}
+
+.action-btn {
+  background: var(--gradient-primary);
+  color: #fff;
+  border: none;
+}
+
+.dental-map-panel {
+  min-width: 0;
+}
+
+.dental-map-box {
+  height: 100%;
+  min-height: 520px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.dental-svg-container {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.svg-fluid {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.legend {
+  align-self: stretch;
+  justify-content: center;
+  flex-wrap: wrap;
+  color: var(--color-text-soft);
+  font-size: 0.92rem;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.legend-danger {
+  background: var(--color-danger);
+}
+
+.legend-secondary {
+  background: var(--color-text-muted);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.modal-dialog-centered {
+  width: min(100%, 420px);
+}
+
+.modal-content {
+  padding: 24px;
+}
+
+.modal-text {
+  margin: 12px 0 20px;
+  color: var(--color-text-soft);
+}
+
+.modal-footer {
+  justify-content: flex-end;
+}
+
+.action-btn-secondary {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.action-btn-danger {
+  background: var(--color-danger);
+  color: #fff;
+  border: none;
+}
+
+@media (max-width: 980px) {
+  .procedure-main {
+    grid-template-columns: 1fr;
+  }
+
+  .dental-map-box {
+    min-height: 320px;
+  }
+}
+
+@media (max-width: 640px) {
+  .procedure-detail-layout,
+  .procedure-data-panel,
+  .dental-map-box {
+    padding: 16px;
+  }
+
+  .panel-header,
+  .modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

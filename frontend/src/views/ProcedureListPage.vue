@@ -132,6 +132,4 @@ function selectProcedure(proc) {
 onMounted(loadProcedures)
 </script>
 
-<style scoped>
-@import "@/list.css";
-</style>
+<style scoped src="@/styles/views/ProcedureListPage.css"></style>

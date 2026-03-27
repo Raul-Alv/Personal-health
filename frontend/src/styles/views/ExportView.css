@@ -1,0 +1,143 @@
+.export-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.export-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 28px;
+}
+
+.export-title,
+.section-title {
+  margin-top: 0;
+  color: var(--color-text);
+}
+
+.section-title {
+  margin-bottom: 12px;
+}
+
+.selector-row,
+.export-options,
+.toggle-row,
+.selection-actions,
+.summary {
+  display: flex;
+  gap: 12px;
+}
+
+.selector-row,
+.toggle-row {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.export-options,
+.selection-actions {
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.patient-select {
+  min-width: 260px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.export-section {
+  margin-top: 24px;
+}
+
+.option-btn,
+.selection-btn,
+.export-btn {
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-weight: 700;
+}
+
+.option-btn {
+  color: #fff;
+  background: var(--gradient-primary);
+}
+
+.option-btn-danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.selection-box {
+  margin: 16px 0;
+  padding: 16px;
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.toggle-help,
+.summary p,
+.selection-count {
+  color: var(--color-text-soft);
+}
+
+.selection-actions {
+  margin-bottom: 12px;
+}
+
+.selection-btn {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.selection-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.selection-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.selection-label {
+  cursor: pointer;
+}
+
+.summary {
+  margin: 16px 0 12px;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.export-btn {
+  color: #fff;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+}
+
+.export-btn:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .export-page,
+  .export-card {
+    padding: 16px;
+  }
+}
