@@ -180,8 +180,6 @@ const props = defineProps({
   patient_id: { type: String, required: true }
 })
 
-const emit = defineEmits(['update-patient'])
-
 const router = useRouter()
 
 const patient = reactive({
@@ -283,12 +281,71 @@ function onInput(field, event) {
   edited[field] = value
 }
 
+function escapeTurtleLiteral(value) {
+  return String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n')
+}
+
+function buildPatientPatchTurtle(data) {
+  const patientUri = `http://hl7.org/fhir/Patient/${props.patient_id}`
+
+  return `@prefix fhir: <http://hl7.org/fhir/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<${patientUri}>
+  fhir:Patient.gender [
+    fhir:value "${escapeTurtleLiteral(data.genero)}"
+  ] ;
+  fhir:Patient.birthDate [
+    fhir:value "${escapeTurtleLiteral(data.fecha_nacimiento)}"
+  ] ;
+  fhir:Patient.maritalStatus [
+    fhir:value "${escapeTurtleLiteral(data.estado_civil)}"
+  ] ;
+  fhir:Patient.identifier [
+    fhir:Identifier.value [
+      fhir:value "${escapeTurtleLiteral(data.ssn)}"
+    ]
+  ] ;
+  fhir:Patient.telecom [
+    fhir:ContactPoint.value [
+      fhir:value "${escapeTurtleLiteral(data.telefono)}"
+    ]
+  ] ;
+  fhir:Patient.address [
+    fhir:Address.line [
+      fhir:value "${escapeTurtleLiteral(data.address?.calle)}"
+    ] ;
+    fhir:Address.postalCode [
+      fhir:value "${escapeTurtleLiteral(data.address?.cp)}"
+    ] ;
+    fhir:Address.city [
+      fhir:value "${escapeTurtleLiteral(data.address?.ciudad)}"
+    ] ;
+    fhir:Address.state [
+      fhir:value "${escapeTurtleLiteral(data.address?.provincia)}"
+    ] ;
+    fhir:Address.country [
+      fhir:value "${escapeTurtleLiteral(data.address?.pais)}"
+    ]
+  ] .
+`
+}
+
+async function savePatient(payload) {
+  const turtle = buildPatientPatchTurtle(payload)
+  await api.patch(`/mis_pacientes/${props.patient_id}/actualizar`, turtle)
+}
+
 async function confirmSave() {
   try {
     showSaveConfirm.value = false
 
     const payload = JSON.parse(JSON.stringify(edited))
-    await emit('update-patient', payload)
+    await savePatient(payload)
 
     Object.assign(patient, payload)
     patient.address = { ...payload.address }

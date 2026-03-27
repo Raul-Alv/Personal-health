@@ -9,7 +9,7 @@ services:
     command: uvicorn main:app --reload --host 0.0.0.0 --port 8000
     volumes:
       # Ahora persiste el DB que tu código abre en /app/backend/data
-      - ./backend/data:/app/backend/data
+      - ./backend/data:/app/data
     entrypoint: >
       sh -c "
         python rdf_util.py &&
