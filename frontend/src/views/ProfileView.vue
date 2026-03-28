@@ -81,11 +81,14 @@
         </button>
       </div>
 
-      <div v-if="otherPatients.length || isEditing" class="related-section">
+      <div v-if="!patients.length || otherPatients.length || isEditing" class="related-section">
         <div class="section-header">
-          <h2>Otros pacientes</h2>
-          <p v-if="isEditing" class="section-help">
+          <h2>{{ patients.length ? 'Otros pacientes' : 'Paciente principal' }}</h2>
+          <p v-if="isEditing && patients.length" class="section-help">
             Pulsa la estrella para convertir un paciente en predeterminado.
+          </p>
+          <p v-else-if="!patients.length" class="section-help">
+            Importa tu paciente principal para empezar.
           </p>
         </div>
 
@@ -112,12 +115,11 @@
               {{ patient.nombre }} {{ patient.apellido }}
             </button>
           </div>
-
           <button
-            v-if="isEditing"
+            v-if="!patients.length"
             class="add-patient-btn"
             type="button"
-            title="Importar paciente"
+            title="Importar paciente principal"
             @click="openImportModal"
           >
             +
@@ -433,6 +435,7 @@ async function confirmImportPatient() {
     selectedImportFiles.value.forEach((file) => {
       formData.append('files', file)
     })
+    formData.append('set_as_favorite', String(!patients.value.length))
 
     const { data } = await api.post('/import/confirm', formData, {
       headers: {

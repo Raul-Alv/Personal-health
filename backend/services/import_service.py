@@ -4,6 +4,7 @@ from pathlib import Path
 from pyshex import ShExEvaluator
 from rdflib import Graph, Namespace, RDF, URIRef
 
+from repositories.user_repo import UserRepo
 from rdf_store import get_allergy_graph, get_patient_graph, get_procedure_graph, get_store, get_user_graph
 from rdf_util import copy_subgraph, extraer_valores
 
@@ -92,7 +93,7 @@ class ImportService:
                 data.append({"tipo": "alergia", "datos": extraer_valores(g_temp, subj)})
         return data
 
-    def confirm_files(self, user_uri: str, files: list[tuple[str, bytes]]) -> dict:
+    def confirm_files(self, user_uri: str, files: list[tuple[str, bytes]], set_as_favorite: bool = False) -> dict:
         g_user = get_user_graph()
         g_patient = get_patient_graph()
         g_proc = get_procedure_graph()
@@ -121,6 +122,10 @@ class ImportService:
             patient_uri = URIRef(f"http://hl7.org/fhir/Patient/{patient_id}")
             g_user.add((URIRef(user_uri), EX.tienePaciente, patient_uri))
         g_user.commit()
+
+        if set_as_favorite and imported_patient_ids:
+            favorite_patient_uri = f"http://hl7.org/fhir/Patient/{imported_patient_ids[0]}"
+            UserRepo().set_favorite_patient(user_uri, favorite_patient_uri)
 
         if len(imported_patient_ids) == 1:
             return {"redirect": f"/paciente/{imported_patient_ids[0]}"}

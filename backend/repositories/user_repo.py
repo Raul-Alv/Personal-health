@@ -40,6 +40,7 @@ class UserRepo:
     def list_my_patients(self, user_uri: str) -> list[dict]:
         g_user = get_user_graph()
         g_patient = get_patient_graph()
+        favorite_uri = self.get_favorite_patient(user_uri)
         rows = g_user.query(queries.GET_USER_PATIENTS.format(user_uri=user_uri))
         output: list[dict] = []
         for row in rows:
@@ -53,11 +54,25 @@ class UserRepo:
                 if getattr(first, "family", None):
                     item["apellido"] = str(first.family)
             output.append(item)
+        if favorite_uri:
+            output.sort(key=lambda item: 0 if item["uri"] == favorite_uri else 1)
         return output
+
+    def get_favorite_patient(self, user_uri: str) -> str | None:
+        g_user = get_user_graph()
+        rows = list(g_user.query(queries.GET_USER_FAVORITE_PATIENT.format(user_uri=user_uri)))
+        if not rows:
+            return None
+        return str(rows[0].patient)
 
     def link_patient(self, user_uri: str, patient_uri: str) -> None:
         g_user = get_user_graph()
         g_user.update(queries.LINK_USER_PATIENT.format(user_uri=user_uri, patient_uri=patient_uri))
+        g_user.commit()
+
+    def set_favorite_patient(self, user_uri: str, patient_uri: str) -> None:
+        g_user = get_user_graph()
+        g_user.update(queries.SET_USER_FAVORITE_PATIENT.format(user_uri=user_uri, patient_uri=patient_uri))
         g_user.commit()
 
     def has_patient_access(self, user_uri: str, patient_uri: str | URIRef) -> bool:

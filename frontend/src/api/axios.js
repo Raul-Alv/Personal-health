@@ -1,5 +1,6 @@
 import axios from 'axios'
 import router from '../router'
+import { clearStoredToken, getValidToken } from '@/utils/auth'
 
 const api = axios.create({
   baseURL: '/api',
@@ -7,19 +8,20 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
-function getValidToken() {
-  const token = localStorage.getItem('token')
-  if (!token || token === 'undefined' || token === 'null' || token.trim() === '') {
-    return null
-  }
-  return token
-}
-
 export function setApiToken(token) {
   if (token) {
     api.defaults.headers.common.Authorization = `Bearer ${token}`
   } else {
     delete api.defaults.headers.common.Authorization
+  }
+}
+
+export function clearAuthSession(redirectTo = null) {
+  clearStoredToken()
+  setApiToken(null)
+
+  if (redirectTo && router.currentRoute.value.name !== redirectTo.name) {
+    router.push(redirectTo)
   }
 }
 
@@ -40,13 +42,12 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   res => res,
   err => {
-    if (err.response?.status === 401) {
-      localStorage.removeItem('token')
-      setApiToken(null)
+    const status = err.response?.status
+    const detail = err.response?.data?.detail?.toLowerCase?.() || ''
+    const userMissing = status === 404 && detail.includes('usuario no encontrado')
 
-      if (router.currentRoute.value.name !== 'Login') {
-        router.push({ name: 'Login' })
-      }
+    if (status === 401 || userMissing) {
+      clearAuthSession({ name: 'Login' })
     }
 
     return Promise.reject(err)

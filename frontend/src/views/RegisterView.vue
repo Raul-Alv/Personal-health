@@ -81,7 +81,7 @@
 <script>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '@/api/axios'
+import api, { clearAuthSession, setApiToken } from '@/api/axios'
 
 export default {
   name: 'RegisterView',
@@ -99,14 +99,22 @@ export default {
         return alert('Las contraseñas no coinciden')
       }
       try {
-        await api.post('/register', {
-          email: email.value,
-          name: name.value,
-          password: password.value
+        clearAuthSession()
+
+        const params = new URLSearchParams()
+        params.append('email', email.value)
+        params.append('nombre', name.value)
+        params.append('password', password.value)
+
+        const res = await api.post('/register/', params, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         })
-        router.push('/login')
-      } catch {
-        alert('Error al registrar')
+
+        localStorage.setItem('token', res.data.access_token)
+        setApiToken(res.data.access_token)
+        router.push('/profile')
+      } catch (e) {
+        alert(e.response?.data?.detail || 'Error al registrar')
       }
     }
 

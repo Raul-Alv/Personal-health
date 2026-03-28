@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from api.deps import get_current_user_uri
 from services.import_service import ImportService
@@ -29,8 +29,12 @@ async def preview_import(files: list[UploadFile] = File(...), user_uri: str = De
 
 
 @router.post("/import/confirm")
-async def confirm_import(files: list[UploadFile] = File(...), user_uri: str = Depends(get_current_user_uri)):
+async def confirm_import(
+    files: list[UploadFile] = File(...),
+    set_as_favorite: bool = Form(False),
+    user_uri: str = Depends(get_current_user_uri),
+):
     payload = []
     for file in files:
         payload.append((file.filename or "archivo.ttl", await file.read()))
-    return ImportService().confirm_files(user_uri=user_uri, files=payload)
+    return ImportService().confirm_files(user_uri=user_uri, files=payload, set_as_favorite=set_as_favorite)

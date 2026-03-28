@@ -47,6 +47,13 @@ GET_USER_PATIENTS = dedent("""
     }}
 """)
 
+GET_USER_FAVORITE_PATIENT = dedent("""
+    PREFIX ex: <http://example.org/fhir/custom#>
+    SELECT ?patient WHERE {{
+        <{user_uri}> ex:pacienteFavorito ?patient .
+    }}
+""")
+
 ASK_USER_HAS_PATIENT = dedent("""
     PREFIX ex: <http://example.org/fhir/custom#>
     ASK {{
@@ -58,6 +65,19 @@ LINK_USER_PATIENT = dedent("""
     PREFIX ex: <http://example.org/fhir/custom#>
     INSERT DATA {{
         <{user_uri}> ex:tienePaciente <{patient_uri}> .
+    }}
+""")
+
+SET_USER_FAVORITE_PATIENT = dedent("""
+    PREFIX ex: <http://example.org/fhir/custom#>
+    DELETE {{
+        <{user_uri}> ex:pacienteFavorito ?current .
+    }}
+    INSERT {{
+        <{user_uri}> ex:pacienteFavorito <{patient_uri}> .
+    }}
+    WHERE {{
+        OPTIONAL {{ <{user_uri}> ex:pacienteFavorito ?current . }}
     }}
 """)
 

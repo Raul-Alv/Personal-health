@@ -8,7 +8,7 @@ from services.auth_service import AuthService
 router = APIRouter()
 
 
-@router.post("/registro/")
+@router.post("/register/")
 def registrar_usuario(email: str = Form(...), password: str = Form(...), nombre: str = Form(...)):
     return AuthService().register(email=email, password=password, nombre=nombre)
 

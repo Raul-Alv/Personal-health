@@ -9,6 +9,7 @@
             id="email"
             type="email"
             v-model="email"
+            @input="error = ''"
             placeholder="tu@correo.com"
             required
           />
@@ -21,6 +22,7 @@
               :type="showPassword ? 'text' : 'password'"
               id="password"
               v-model="password"
+              @input="error = ''"
               placeholder="Contraseña"
               required
             />
@@ -29,6 +31,8 @@
             </button>
           </div>
         </div>
+
+        <p v-if="error" class="login-error">{{ error }}</p>
 
         <button type="submit" class="submit-btn">Entrar</button>
       </form>
@@ -43,6 +47,7 @@
 
 <script>
 import api, { setApiToken } from '@/api/axios'
+
 export default {
   name: 'LoginView',
   data() {
@@ -58,18 +63,37 @@ export default {
   },
   methods: {
     async login() {
+      this.error = ''
+
       try {
         const params = new URLSearchParams()
         params.append('email', this.email)
         params.append('password', this.password)
+
         const res = await api.post('/login/', params, {
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         })
+
         localStorage.setItem('token', res.data.access_token)
         setApiToken(res.data.access_token)
         this.$router.push('/profile')
       } catch (e) {
-        this.error = e.response?.data?.detail || 'Error en el login'
+        const detail = e.response?.data?.detail || ''
+        const normalizedDetail = detail.toLowerCase()
+
+        if (normalizedDetail.includes('contrase')) {
+          this.password = ''
+          this.showPassword = false
+          this.error = 'Contraseña incorrecta'
+          return
+        }
+
+        if (normalizedDetail.includes('usuario no encontrado')) {
+          this.error = 'No existe ningún usuario con ese email'
+          return
+        }
+
+        this.error = detail || 'Error en el login'
       }
     }
   }

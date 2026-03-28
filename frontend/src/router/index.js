@@ -9,6 +9,7 @@ import AllergyListPage from '../views/AllergyListPage.vue'
 import ProcedureDetail from '../views/ProcedureDetail.vue'
 import ExportView from '../views/ExportView.vue'
 import ImportView from '../views/ImportView.vue'
+import { clearStoredToken, getValidToken } from '@/utils/auth'
 
 const routes = [
   { path: '/', component: HomePage },
@@ -69,13 +70,8 @@ const router = createRouter({
   routes
 })
 
-function hasValidToken() {
-  const token = localStorage.getItem('token')
-  return !!token && token !== 'undefined' && token !== 'null' && token.trim() !== ''
-}
-
 router.beforeEach((to, from, next) => {
-  const isAuthenticated = hasValidToken()
+  const isAuthenticated = !!getValidToken()
 
   if (to.matched.some(record => record.meta.requiresAuth) && !isAuthenticated) {
     next({ name: 'Login' })
@@ -83,7 +79,8 @@ router.beforeEach((to, from, next) => {
   }
 
   if ((to.name === 'Login' || to.name === 'Register') && isAuthenticated) {
-    next({ name: 'Profile' })
+    clearStoredToken()
+    next()
     return
   }
 

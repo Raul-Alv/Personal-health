@@ -40,7 +40,7 @@
 </template>
 <script setup>
 import { ref, onMounted } from 'vue'
-import api from '@/api/axios'
+import api, { clearAuthSession } from '@/api/axios'
 import { useRouter } from 'vue-router'
 
 
@@ -65,8 +65,7 @@ function goBack() {
 }
 
 function cerrarSesion() {
-  localStorage.removeItem("token");
-  router.push("/login");
+  clearAuthSession({ name: 'Login' })
 }
 
 /** Carga la lista desde el backend */
