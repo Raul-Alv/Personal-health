@@ -65,6 +65,15 @@
   transform: translateY(-1px);
 }
 
+.menu-action-btn-logout {
+  background: rgba(127, 29, 29, 0.42);
+  border-color: rgba(254, 202, 202, 0.35);
+}
+
+.menu-action-btn-logout:hover:not(:disabled) {
+  background: rgba(153, 27, 27, 0.58);
+}
+
 .menu-action-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;

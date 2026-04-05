@@ -8,5 +8,5 @@
 </template>
 
 <script setup>
-import CollapsableMenu from '@/views/CollapsableMenu.vue' // Asegúrate de importar el componente
+import { CollapsableMenu } from '@/scripts/views/appView'
 </script>

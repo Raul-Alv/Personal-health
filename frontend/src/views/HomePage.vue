@@ -30,7 +30,4 @@
   </div>
 </template>
 
-<script setup>
-</script>
-
 <style scoped src="@/styles/views/HomePage.css"></style>

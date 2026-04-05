@@ -32,7 +32,7 @@
               :type="showPassword ? 'text' : 'password'"
               id="password"
               v-model="password"
-              placeholder="••••••••"
+              placeholder="********"
               required
             />
             <button
@@ -52,7 +52,7 @@
               :type="showConfirm ? 'text' : 'password'"
               id="confirm"
               v-model="confirm"
-              placeholder="••••••••"
+              placeholder="********"
               required
             />
             <button
@@ -71,64 +71,18 @@
       <p class="bottom-text">
         ¿Ya tienes cuenta?
         <router-link to="/login" class="login-link">
-          Inicia Sesión
+          Inicia sesión
         </router-link>
       </p>
     </div>
   </div>
 </template>
 
-<script>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import api, { clearAuthSession, setApiToken } from '@/api/axios'
+<script setup>
+import { useRegisterView } from '@/scripts/views/registerView'
 
-export default {
-  name: 'RegisterView',
-  setup() {
-    const email = ref('')
-    const name = ref('')
-    const password = ref('')
-    const confirm = ref('')
-    const showPassword = ref(false)
-    const showConfirm = ref(false)
-    const router = useRouter()
-
-    async function register() {
-      if (password.value !== confirm.value) {
-        return alert('Las contraseñas no coinciden')
-      }
-      try {
-        clearAuthSession()
-
-        const params = new URLSearchParams()
-        params.append('email', email.value)
-        params.append('nombre', name.value)
-        params.append('password', password.value)
-
-        const res = await api.post('/register/', params, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        })
-
-        localStorage.setItem('token', res.data.access_token)
-        setApiToken(res.data.access_token)
-        router.push('/profile')
-      } catch (e) {
-        alert(e.response?.data?.detail || 'Error al registrar')
-      }
-    }
-
-    return {
-      email,
-      name,
-      password,
-      confirm,
-      showPassword,
-      showConfirm,
-      register
-    }
-  }
-}
+const { email, name, password, confirm, showPassword, showConfirm, register } =
+  useRegisterView()
 </script>
 
 <style scoped src="@/styles/views/RegisterView.css"></style>

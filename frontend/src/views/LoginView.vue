@@ -45,59 +45,10 @@
   </div>
 </template>
 
-<script>
-import api, { setApiToken } from '@/api/axios'
+<script setup>
+import { useLoginView } from '@/scripts/views/loginView'
 
-export default {
-  name: 'LoginView',
-  data() {
-    return {
-      email: '',
-      password: '',
-      showPassword: false,
-      error: ''
-    }
-  },
-  mounted() {
-    console.log('LoginView montado')
-  },
-  methods: {
-    async login() {
-      this.error = ''
-
-      try {
-        const params = new URLSearchParams()
-        params.append('email', this.email)
-        params.append('password', this.password)
-
-        const res = await api.post('/login/', params, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        })
-
-        localStorage.setItem('token', res.data.access_token)
-        setApiToken(res.data.access_token)
-        this.$router.push('/profile')
-      } catch (e) {
-        const detail = e.response?.data?.detail || ''
-        const normalizedDetail = detail.toLowerCase()
-
-        if (normalizedDetail.includes('contrase')) {
-          this.password = ''
-          this.showPassword = false
-          this.error = 'Contraseña incorrecta'
-          return
-        }
-
-        if (normalizedDetail.includes('usuario no encontrado')) {
-          this.error = 'No existe ningún usuario con ese email'
-          return
-        }
-
-        this.error = detail || 'Error en el login'
-      }
-    }
-  }
-}
+const { email, password, showPassword, error, login } = useLoginView()
 </script>
 
 <style scoped src="@/styles/views/LoginView.css"></style>

@@ -50,18 +50,18 @@
   color: var(--color-text);
 }
 
-.divider–horizontal,
-.divider–vertical {
+.divider-horizontal,
+.divider-vertical {
   background: var(--color-border);
   border: none;
 }
 
-.divider–horizontal {
+.divider-horizontal {
   height: 1px;
   margin: 0 0 1rem;
 }
 
-.divider–vertical {
+.divider-vertical {
   width: 1px;
   min-height: 100%;
 }
@@ -94,6 +94,11 @@
   border-radius: var(--radius-sm);
   background: var(--color-surface-muted);
   color: var(--color-text);
+}
+
+.editable-select {
+  width: 100%;
+  font: inherit;
 }
 
 [contenteditable="true"].editable-field {
@@ -221,7 +226,7 @@
     grid-template-columns: 1fr;
   }
 
-  .divider–vertical {
+  .divider-vertical {
     display: none;
   }
 

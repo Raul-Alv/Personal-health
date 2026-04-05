@@ -12,7 +12,7 @@
           </svg>
           <h1 class="name">{{ patient.nombre }} {{ patient.apellido }}</h1>
         </header>
-        <hr class="divider–horizontal" />
+        <hr class="divider-horizontal" />
 
         <button
           v-if="!isEditing"
@@ -39,11 +39,21 @@
 
         <div class="field">
           <label>Género:</label>
+          <template v-if="isEditing">
+            <select v-model="edited.genero" class="editable-field editable-select">
+              <option
+                v-for="option in genderOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </template>
           <span
-            :contenteditable="isEditing"
-            @input="onInput('genero', $event)"
+            v-else
             class="editable-field"
-          >{{ patient.genero }}</span>
+          >{{ genderLabel }}</span>
         </div>
         <div class="field">
           <label>Fecha de nacimiento:</label>
@@ -55,11 +65,21 @@
         </div>
         <div class="field">
           <label>Estado civil:</label>
+          <template v-if="isEditing">
+            <select v-model="edited.estado_civil" class="editable-field editable-select">
+              <option
+                v-for="option in maritalStatusOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </template>
           <span
-            :contenteditable="isEditing"
-            @input="onInput('estado_civil', $event)"
+            v-else
             class="editable-field"
-          >{{ patient.estado_civil }}</span>
+          >{{ maritalStatusLabel }}</span>
         </div>
         <div class="field ssn-field">
           <label>Seguridad Social:</label>
@@ -124,7 +144,7 @@
         </fieldset>
       </section>
 
-      <div class="divider–vertical"></div>
+      <div class="divider-vertical"></div>
 
       <aside class="actions">
         <button
@@ -177,258 +197,34 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import api from '@/api/axios'
+import { usePatientView } from '@/scripts/views/patientView'
 
 const props = defineProps({
   patient_id: { type: String, required: true }
 })
 
-const router = useRouter()
-
-const patient = reactive({
-  nombre: '',
-  apellido: '',
-  genero: '',
-  fecha_nacimiento: '',
-  estado_civil: '',
-  telefono: '',
-  ssn: '',
-  address: {
-    calle: '',
-    cp: '',
-    ciudad: '',
-    provincia: '',
-    pais: ''
-  }
-})
-
-const showSSN = ref(false)
-const error = ref('')
-const isEditing = ref(false)
-const showSaveConfirm = ref(false)
-const showSavedMessage = ref(false)
-
-const original = ref({})
-const edited = reactive({
-  nombre: '',
-  apellido: '',
-  genero: '',
-  fecha_nacimiento: '',
-  estado_civil: '',
-  telefono: '',
-  ssn: '',
-  address: {
-    calle: '',
-    cp: '',
-    ciudad: '',
-    provincia: '',
-    pais: ''
-  }
-})
-
-const maskedSSN = computed(() =>
-  (patient.ssn || '').replace(/.(?=.{4})/g, '*')
-)
-
-function fillEditedFromPatient() {
-  edited.nombre = patient.nombre
-  edited.apellido = patient.apellido
-  edited.genero = patient.genero
-  edited.fecha_nacimiento = patient.fecha_nacimiento
-  edited.estado_civil = patient.estado_civil
-  edited.telefono = patient.telefono
-  edited.ssn = patient.ssn
-  edited.address = {
-    calle: patient.address.calle,
-    cp: patient.address.cp,
-    ciudad: patient.address.ciudad,
-    provincia: patient.address.provincia,
-    pais: patient.address.pais
-  }
-}
-
-function resetPatient() {
-  patient.nombre = ''
-  patient.apellido = ''
-  patient.genero = ''
-  patient.fecha_nacimiento = ''
-  patient.estado_civil = ''
-  patient.telefono = ''
-  patient.ssn = ''
-  patient.address.calle = ''
-  patient.address.cp = ''
-  patient.address.ciudad = ''
-  patient.address.provincia = ''
-  patient.address.pais = ''
-}
-
-function startEdit() {
-  original.value = JSON.parse(JSON.stringify(patient))
-  fillEditedFromPatient()
-  isEditing.value = true
-}
-
-function openConfirmSave() {
-  showSaveConfirm.value = true
-}
-
-function onInput(field, event) {
-  const value = event.target.innerText.trim()
-
-  const addressFields = ['calle', 'cp', 'ciudad', 'provincia', 'pais']
-  if (addressFields.includes(field)) {
-    edited.address[field] = value
-    return
-  }
-
-  edited[field] = value
-}
-
-function escapeTurtleLiteral(value) {
-  return String(value ?? '')
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/\r/g, '\\r')
-    .replace(/\n/g, '\\n')
-}
-
-function buildPatientPatchTurtle(data) {
-  const patientUri = `http://hl7.org/fhir/Patient/${props.patient_id}`
-
-  return `@prefix fhir: <http://hl7.org/fhir/> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-
-<${patientUri}>
-  fhir:Patient.gender [
-    fhir:value "${escapeTurtleLiteral(data.genero)}"
-  ] ;
-  fhir:Patient.birthDate [
-    fhir:value "${escapeTurtleLiteral(data.fecha_nacimiento)}"
-  ] ;
-  fhir:Patient.maritalStatus [
-    fhir:value "${escapeTurtleLiteral(data.estado_civil)}"
-  ] ;
-  fhir:Patient.identifier [
-    fhir:Identifier.value [
-      fhir:value "${escapeTurtleLiteral(data.ssn)}"
-    ]
-  ] ;
-  fhir:Patient.telecom [
-    fhir:ContactPoint.value [
-      fhir:value "${escapeTurtleLiteral(data.telefono)}"
-    ]
-  ] ;
-  fhir:Patient.address [
-    fhir:Address.line [
-      fhir:value "${escapeTurtleLiteral(data.address?.calle)}"
-    ] ;
-    fhir:Address.postalCode [
-      fhir:value "${escapeTurtleLiteral(data.address?.cp)}"
-    ] ;
-    fhir:Address.city [
-      fhir:value "${escapeTurtleLiteral(data.address?.ciudad)}"
-    ] ;
-    fhir:Address.state [
-      fhir:value "${escapeTurtleLiteral(data.address?.provincia)}"
-    ] ;
-    fhir:Address.country [
-      fhir:value "${escapeTurtleLiteral(data.address?.pais)}"
-    ]
-  ] .
-`
-}
-
-async function savePatient(payload) {
-  const turtle = buildPatientPatchTurtle(payload)
-  await api.patch(`/mis_pacientes/${props.patient_id}/actualizar`, turtle)
-}
-
-async function confirmSave() {
-  try {
-    showSaveConfirm.value = false
-
-    const payload = JSON.parse(JSON.stringify(edited))
-    await savePatient(payload)
-
-    Object.assign(patient, payload)
-    patient.address = { ...payload.address }
-
-    isEditing.value = false
-    showSavedMessage.value = true
-  } catch (e) {
-    console.error(e)
-    error.value = 'No se pudieron guardar los cambios'
-  }
-}
-
-function cancelEdit() {
-  Object.assign(patient, JSON.parse(JSON.stringify(original.value)))
-  isEditing.value = false
-  showSaveConfirm.value = false
-}
-
-async function fetchPatientDatos() {
-  try {
-    error.value = ''
-    resetPatient()
-    isEditing.value = false
-    showSaveConfirm.value = false
-
-    const { data: rows } = await api.get(`/mis_pacientes/${props.patient_id}/get/datos`)
-
-    if (!rows.length) {
-      error.value = 'No se encontraron datos del paciente'
-      return
-    }
-
-    const row = rows[0]
-
-    patient.nombre = row.nombre || ''
-    patient.apellido = row.apellidos || ''
-    patient.genero = row.genero || ''
-    patient.fecha_nacimiento = row.fechaNacimiento || ''
-    patient.estado_civil = row.estado_civil || ''
-    patient.telefono = row.telefono || ''
-    patient.ssn = row.ss || ''
-    patient.address.calle = row.calle || ''
-    patient.address.cp = row.cp || ''
-    patient.address.ciudad = row.ciudad || ''
-    patient.address.provincia = row.provincia || ''
-    patient.address.pais = row.pais || ''
-  } catch (e) {
-    error.value =
-      e.response?.data?.detail ||
-      'Error al cargar datos (revisa token o permisos)'
-    console.error(e)
-  }
-}
-
-function goProcedures() {
-  if (isEditing.value) return
-  router.push(`/patient/${props.patient_id}/procedimientos`)
-}
-
-function goAllergies() {
-  if (isEditing.value) return
-  router.push(`/patient/${props.patient_id}/alergias`)
-}
-
-function doExport() {
-  if (isEditing.value) return
-  window.open(`${api.defaults.baseURL}/export_all/${props.patient_id}`, '_blank')
-}
-
-onMounted(fetchPatientDatos)
-
-watch(
-  () => props.patient_id,
-  async (newId, oldId) => {
-    if (!newId || newId === oldId) return
-    await fetchPatientDatos()
-  }
-)
+const {
+  genderOptions,
+  maritalStatusOptions,
+  patient,
+  edited,
+  showSSN,
+  error,
+  isEditing,
+  showSaveConfirm,
+  showSavedMessage,
+  maskedSSN,
+  genderLabel,
+  maritalStatusLabel,
+  startEdit,
+  openConfirmSave,
+  onInput,
+  confirmSave,
+  cancelEdit,
+  goProcedures,
+  goAllergies,
+  doExport
+} = usePatientView(props)
 </script>
 
 <style scoped src="@/styles/views/PatientView.css"></style>

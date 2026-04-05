@@ -27,7 +27,7 @@
 
           <div class="panel-actions">
             <button class="icon-btn" @click="confirmDelete = true" title="Borrar">
-              🗑️
+              Eliminar
             </button>
           </div>
         </div>
@@ -35,22 +35,22 @@
         <div class="field-grid">
           <div class="field-card">
             <span class="label">Procedimiento</span>
-            <div class="detail-value">{{ procedures[0]?.description || procedures[0]?.text || '—' }}</div>
+            <div class="detail-value">{{ procedures[0]?.description || procedures[0]?.text || '-' }}</div>
           </div>
 
           <div class="field-card">
             <span class="label">Fecha</span>
-            <div class="detail-value">{{ procedures[0]?.performedDateTime || '—' }}</div>
+            <div class="detail-value">{{ procedures[0]?.performedDateTime || '-' }}</div>
           </div>
 
           <div class="field-card">
             <span class="label">Estado</span>
-            <div class="detail-value">{{ procedures[0]?.status || '—' }}</div>
+            <div class="detail-value">{{ procedures[0]?.status || '-' }}</div>
           </div>
 
           <div class="field-card">
             <span class="label">Doctor</span>
-            <div class="detail-value">{{ procedures[0]?.performerRef || '—' }}</div>
+            <div class="detail-value">{{ procedures[0]?.performerRef || '-' }}</div>
           </div>
 
           <div class="field-card field-card-full">
@@ -60,7 +60,7 @@
 
           <div class="field-card field-card-full">
             <span class="label">URI</span>
-            <div class="detail-value monospace">{{ procedures[0]?.procedure_uri || '—' }}</div>
+            <div class="detail-value monospace">{{ procedures[0]?.procedure_uri || '-' }}</div>
           </div>
         </div>
 
@@ -72,6 +72,13 @@
       <aside class="dental-map-panel">
         <div class="dental-map-box">
           <h2 class="section-title">Mapa dental</h2>
+          <p class="section-subtitle">
+            {{
+              hasDentalData
+                ? `Diente asociado: ${procedures[0]?.dienteDisplay || activeTeeth.join(', ')}`
+                : 'Sin diente asociado a este procedimiento.'
+            }}
+          </p>
 
           <div class="dental-svg-container">
             <DentaduraIconoSvg ref="icono" class="svg-fluid" />
@@ -107,12 +114,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import DentaduraIconoSvg from '@/assets/Human_dental_arches.svg?component'
-import api from '@/api/axios'
-import { useRouter } from 'vue-router'
+import {
+  DentaduraIconoSvg,
+  useProcedureDetailView
+} from '@/scripts/views/procedureDetailView'
 
-const icono = ref(null)
 const props = defineProps({
   patient_id: {
     type: [String, Number],
@@ -123,62 +129,9 @@ const props = defineProps({
     required: true
   }
 })
-const router = useRouter()
-const selectedIso = ref(null)
-const procedures = ref([])
-const loading = ref(false)
-const error = ref(false)
-const confirmDelete = ref(false)
 
-function pintarDientes() {
-}
-
-async function fetchTooth() {
-  loading.value = true
-  error.value = false
-  try {
-    const resp = await api.get(
-      `/mis_pacientes/${props.patient_id}/get/procedimientos/${props.procedure_id}`
-    )
-    procedures.value = resp.data
-    if (procedures.value.length > 0) {
-      selectedIso.value = procedures.value[0].dienteCode
-      setTimeout(() => {
-        const grupo = document.getElementsByClassName(`${selectedIso.value}`)
-        if (grupo.length > 0) {
-          grupo[0].setAttribute('fill', '#FF0000')
-          grupo[0].addEventListener('click', pintarDientes)
-        }
-      }, 100)
-    }
-  } catch (e) {
-    error.value = true
-  } finally {
-    loading.value = false
-  }
-}
-
-function onExport() {
-}
-
-function onDelete() {
-  api.delete(`/mis_pacientes/${props.patient_id}/delete/procedimientos/${props.procedure_id}`)
-    .then(() => {
-      goBack()
-    })
-    .catch((e) => {
-      console.error('Error al borrar el procedimiento:', e)
-    })
-  confirmDelete.value = false
-}
-
-function goBack() {
-  router.push(`/patient/${props.patient_id}/procedimientos`)
-}
-
-onMounted(() => {
-  fetchTooth()
-})
+const { icono, procedures, activeTeeth, hasDentalData, confirmDelete, onExport, onDelete, goBack } =
+  useProcedureDetailView(props)
 </script>
 
 <style scoped src="@/styles/views/ProcedureDetail.css"></style>

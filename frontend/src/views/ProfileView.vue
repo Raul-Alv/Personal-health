@@ -9,6 +9,12 @@
 
         <div class="actions">
           <button
+            class="btn btn-danger"
+            @click="logout"
+          >
+            Cerrar sesión
+          </button>
+          <button
             v-if="!isEditing"
             class="btn btn-primary"
             @click="startEdit"
@@ -247,274 +253,44 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import api from '@/api/axios'
+import { useProfileView } from '@/scripts/views/profileView'
 
-const router = useRouter()
-
-const user = reactive({
-  nombre: '',
-  email: '',
-  usuario_uri: ''
-})
-
-const edited = reactive({
-  nombre: '',
-  email: '',
-  password: ''
-})
-
-const patients = ref([])
-const originalPatients = ref([])
-const isEditing = ref(false)
-const saving = ref(false)
-const error = ref('')
-const success = ref('')
-const original = ref({})
-
-const showPasswordModal = ref(false)
-const passwordChanged = ref(false)
-const passwordError = ref('')
-
-const showDefaultModal = ref(false)
-const pendingDefaultPatient = ref(null)
-const showImportModal = ref(false)
-const selectedImportFiles = ref([])
-const importing = ref(false)
-const importError = ref('')
-
-const passwordForm = reactive({
-  newPassword: '',
-  confirmPassword: ''
-})
-
-const defaultPatient = computed(() => patients.value[0] || null)
-const otherPatients = computed(() => patients.value.slice(1))
-
-function clearMessages() {
-  error.value = ''
-  success.value = ''
-}
-
-function clonePatients(list) {
-  return list.map((patient) => ({ ...patient }))
-}
-
-function resetPasswordModal() {
-  passwordForm.newPassword = ''
-  passwordForm.confirmPassword = ''
-  passwordError.value = ''
-}
-
-function startEdit() {
-  clearMessages()
-  original.value = JSON.parse(JSON.stringify(user))
-  originalPatients.value = clonePatients(patients.value)
-  edited.nombre = user.nombre
-  edited.email = user.email
-  edited.password = ''
-  passwordChanged.value = false
-  pendingDefaultPatient.value = null
-  resetPasswordModal()
-  resetImportState()
-  showImportModal.value = false
-  isEditing.value = true
-}
-
-function cancelEdit() {
-  clearMessages()
-  user.nombre = original.value.nombre || ''
-  user.email = original.value.email || ''
-  patients.value = clonePatients(originalPatients.value)
-  edited.password = ''
-  passwordChanged.value = false
-  pendingDefaultPatient.value = null
-  resetPasswordModal()
-  resetImportState()
-  showImportModal.value = false
-  isEditing.value = false
-}
-
-function openPasswordModal() {
-  resetPasswordModal()
-  showPasswordModal.value = true
-}
-
-function closePasswordModal() {
-  resetPasswordModal()
-  showPasswordModal.value = false
-}
-
-function confirmPasswordChange() {
-  passwordError.value = ''
-
-  if (!passwordForm.newPassword || !passwordForm.confirmPassword) {
-    passwordError.value = 'Debes rellenar ambos campos.'
-    return
-  }
-
-  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-    passwordError.value = 'Las contraseñas no coinciden.'
-    return
-  }
-
-  edited.password = passwordForm.newPassword
-  passwordChanged.value = true
-  showPasswordModal.value = false
-  resetPasswordModal()
-}
-
-function askSetDefault(patient) {
-  pendingDefaultPatient.value = patient
-  showDefaultModal.value = true
-}
-
-function closeDefaultModal() {
-  pendingDefaultPatient.value = null
-  showDefaultModal.value = false
-}
-
-function confirmSetDefaultPatient() {
-  if (!pendingDefaultPatient.value) return
-
-  const selectedId = pendingDefaultPatient.value.id
-  const selectedIndex = patients.value.findIndex((patient) => patient.id === selectedId)
-
-  if (selectedIndex <= 0) {
-    closeDefaultModal()
-    return
-  }
-
-  const currentDefault = patients.value[0]
-  const selectedPatient = patients.value[selectedIndex]
-
-  patients.value.splice(selectedIndex, 1)
-  patients.value[0] = selectedPatient
-  patients.value.splice(1, 0, currentDefault)
-
-  success.value = `${selectedPatient.nombre} ${selectedPatient.apellido} ahora es el paciente predeterminado.`
-  closeDefaultModal()
-}
-
-function resetImportState() {
-  selectedImportFiles.value = []
-  importError.value = ''
-  importing.value = false
-}
-
-function openImportModal() {
-  importError.value = ''
-  showImportModal.value = true
-}
-
-function closeImportModal(force = false) {
-  if (importing.value && !force) return
-  showImportModal.value = false
-  resetImportState()
-}
-
-function handleImportFileChange(event) {
-  const files = Array.from(event.target.files || [])
-  selectedImportFiles.value = files
-  importError.value = ''
-}
-
-async function confirmImportPatient() {
-  if (!selectedImportFiles.value.length) {
-    importError.value = 'Debes seleccionar un archivo .ttl.'
-    return
-  }
-
-  try {
-    importError.value = ''
-    clearMessages()
-    importing.value = true
-
-    const formData = new FormData()
-    selectedImportFiles.value.forEach((file) => {
-      formData.append('files', file)
-    })
-    formData.append('set_as_favorite', String(!patients.value.length))
-
-    const { data } = await api.post('/import/confirm', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
-
-    await fetchPatients()
-    closeImportModal(true)
-    success.value = 'Paciente importado correctamente.'
-
-    if (data?.redirect) {
-      const frontendRedirect = data.redirect.replace('/paciente/', '/patient/')
-      router.push(frontendRedirect)
-    }
-  } catch (e) {
-    importError.value = e.response?.data?.detail || 'No se pudo importar el archivo'
-    console.error(e)
-  } finally {
-    importing.value = false
-  }
-}
-
-async function fetchUser() {
-  try {
-    clearMessages()
-    const { data } = await api.get('/me/')
-    user.nombre = data.nombre || ''
-    user.email = data.email || ''
-    user.usuario_uri = data.usuario_uri || ''
-  } catch (e) {
-    error.value = e.response?.data?.detail || 'Error al cargar el perfil'
-    console.error(e)
-  }
-}
-
-async function fetchPatients() {
-  try {
-    const { data } = await api.get('/mis_pacientes/menu')
-    patients.value = data || []
-  } catch (e) {
-    console.error('Error cargando pacientes asociados:', e)
-  }
-}
-
-async function saveEdit() {
-  try {
-    clearMessages()
-    saving.value = true
-
-    const payload = {
-      nombre: edited.nombre,
-      email: edited.email,
-      password: edited.password
-    }
-
-    await api.patch('/me/', payload)
-
-    user.nombre = edited.nombre
-    user.email = edited.email
-
-    isEditing.value = false
-    success.value = 'Perfil actualizado correctamente'
-  } catch (e) {
-    error.value = e.response?.data?.detail || 'No se pudo guardar el perfil'
-    console.error(e)
-  } finally {
-    saving.value = false
-  }
-}
-
-function goToPatient(patientId) {
-  router.push(`/patient/${patientId}`)
-}
-
-onMounted(async () => {
-  await fetchUser()
-  await fetchPatients()
-})
+const {
+  user,
+  edited,
+  patients,
+  isEditing,
+  saving,
+  error,
+  success,
+  showPasswordModal,
+  passwordChanged,
+  passwordError,
+  showDefaultModal,
+  pendingDefaultPatient,
+  showImportModal,
+  selectedImportFiles,
+  importing,
+  importError,
+  passwordForm,
+  defaultPatient,
+  otherPatients,
+  startEdit,
+  cancelEdit,
+  openPasswordModal,
+  closePasswordModal,
+  confirmPasswordChange,
+  askSetDefault,
+  closeDefaultModal,
+  confirmSetDefaultPatient,
+  openImportModal,
+  closeImportModal,
+  handleImportFileChange,
+  confirmImportPatient,
+  saveEdit,
+  goToPatient,
+  logout
+} = useProfileView()
 </script>
 
 <style scoped src="@/styles/views/ProfileView.css"></style>
