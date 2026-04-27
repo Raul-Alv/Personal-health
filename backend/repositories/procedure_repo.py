@@ -5,22 +5,39 @@ from sparql import queries
 
 
 class ProcedureRepo:
+    @staticmethod
+    def _serialize_list_row(row) -> dict:
+        return {
+            "procedure_uri": str(row.proc),
+            "code": str(row.code) if row.code else None,
+            "text": str(row.text) if row.text else None,
+            "status": str(row.status) if row.status else None,
+            "performedDateTime": str(row.performedDateTime) if row.performedDateTime else None,
+            "performerRef": str(row.performerRef) if row.performerRef else None,
+        }
+
     def list_by_patient(self, patient_id: str) -> list[dict]:
+        return self.search_by_patient(patient_id)
+
+    def search_by_patient(
+        self,
+        patient_id: str,
+        nombre: str | None = None,
+        fecha: str | None = None,
+        practicante: str | None = None,
+        diente: str | None = None,
+    ) -> list[dict]:
         store = get_store()
-        rows = store.query(queries.PROCEDURE_GET_LIST_DETAILS.format(patient_id=patient_id))
-        out: list[dict] = []
-        for row in rows:
-            out.append(
-                {
-                    "procedure_uri": str(row.proc),
-                    "code": str(row.code) if row.code else None,
-                    "text": str(row.text) if row.text else None,
-                    "status": str(row.status) if row.status else None,
-                    "performedDateTime": str(row.performedDateTime) if row.performedDateTime else None,
-                    "performerRef": str(row.performerRef) if row.performerRef else None,
-                }
+        rows = store.query(
+            queries.build_procedure_list_query(
+                patient_id=patient_id,
+                nombre=nombre,
+                fecha=fecha,
+                practicante=practicante,
+                diente=diente,
             )
-        return out
+        )
+        return [self._serialize_list_row(row) for row in rows]
 
     def get_detail(self, procedure_uri: str) -> list[dict]:
         store = get_store()

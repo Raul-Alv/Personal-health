@@ -153,9 +153,9 @@ PATIENT_GET_ALL_DATA = dedent("""
 # ----------------------------
 # Procedimientos
 # ----------------------------
-PROCEDURE_GET_LIST_DETAILS = dedent("""
+PROCEDURE_LIST_QUERY_TEMPLATE = dedent("""
     PREFIX fhir: <http://hl7.org/fhir/>
-    SELECT ?proc ?code ?text ?status ?performedDateTime ?performerRef
+    SELECT DISTINCT ?proc ?code ?text ?status ?performedDateTime ?performerRef
     FROM <urn:app_salud:procedimientos>
     WHERE {{
         ?proc a fhir:Procedure ;
@@ -165,9 +165,61 @@ PROCEDURE_GET_LIST_DETAILS = dedent("""
               fhir:Procedure.status / fhir:value ?status ;
               fhir:Procedure.performedDateTime / fhir:value ?performedDateTime ;
               fhir:Procedure.performer / fhir:Procedure.performer.actor / fhir:Reference.reference / fhir:value ?performerRef .
+        OPTIONAL {{
+            ?proc fhir:Procedure.bodySite / fhir:CodeableConcept.coding / fhir:Coding.code / fhir:value ?dienteCode .
+        }}
+        OPTIONAL {{
+            ?proc fhir:Procedure.bodySite / fhir:CodeableConcept.coding / fhir:Coding.display / fhir:value ?dienteDisplay .
+        }}
+        {extra_filters}
     }}
-    ORDER BY ?proc
+    ORDER BY DESC(?performedDateTime) ?proc
 """)
+
+
+def escape_sparql_literal(value: str) -> str:
+    return (
+        value.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+    )
+
+
+def build_procedure_list_query(
+    patient_id: str,
+    nombre: str | None = None,
+    fecha: str | None = None,
+    practicante: str | None = None,
+    diente: str | None = None,
+) -> str:
+    filters: list[str] = []
+
+    if nombre and nombre.strip():
+        nombre_escaped = escape_sparql_literal(nombre.strip().lower())
+        filters.append(f'FILTER(CONTAINS(LCASE(STR(?text)), "{nombre_escaped}"))')
+
+    if fecha and fecha.strip():
+        fecha_escaped = escape_sparql_literal(fecha.strip())
+        filters.append(f'FILTER(CONTAINS(STR(?performedDateTime), "{fecha_escaped}"))')
+
+    if practicante and practicante.strip():
+        practicante_escaped = escape_sparql_literal(practicante.strip().lower())
+        filters.append(f'FILTER(CONTAINS(LCASE(STR(?performerRef)), "{practicante_escaped}"))')
+
+    if diente and diente.strip():
+        diente_escaped = escape_sparql_literal(diente.strip().lower())
+        filters.append(
+            "FILTER("
+            f'CONTAINS(LCASE(STR(COALESCE(?dienteCode, ""))), "{diente_escaped}") || '
+            f'CONTAINS(LCASE(STR(COALESCE(?dienteDisplay, ""))), "{diente_escaped}")'
+            ")"
+        )
+
+    return PROCEDURE_LIST_QUERY_TEMPLATE.format(
+        patient_id=escape_sparql_literal(patient_id),
+        extra_filters="\n        ".join(filters),
+    )
 
 PROCEDURE_GET_DETAILS = dedent("""
     PREFIX fhir: <http://hl7.org/fhir/>

@@ -1,1 +1,122 @@
 @import "../shared/list-page.css";
+
+.ppv-layout {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  align-items: start;
+}
+
+.ppv-main,
+.ppv-sidebar-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.ppv-main {
+  padding: 20px;
+}
+
+.ppv-sidebar {
+  position: sticky;
+  top: 24px;
+}
+
+.ppv-sidebar-card {
+  padding: 20px;
+}
+
+.ppv-sidebar-header {
+  margin-bottom: 18px;
+}
+
+.ppv-sidebar-header h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+  color: var(--color-text);
+}
+
+.ppv-sidebar-header p {
+  margin: 0;
+  color: var(--color-text-soft);
+  line-height: 1.5;
+}
+
+.ppv-filter-form {
+  display: grid;
+  gap: 14px;
+}
+
+.ppv-filter-group {
+  display: grid;
+  gap: 6px;
+}
+
+.ppv-filter-label {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.ppv-filter-input {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.ppv-filter-input:focus {
+  outline: none;
+  border-color: rgba(102, 126, 234, 0.55);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+  background: var(--color-surface);
+}
+
+.ppv-sidebar-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.ppv-btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  box-shadow: none;
+}
+
+.ppv-btn-secondary:hover {
+  background: var(--color-surface-soft);
+}
+
+.ppv-btn:disabled,
+.ppv-btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ppv-empty {
+  text-align: center;
+  padding: 2rem;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-soft);
+  background: var(--color-surface-soft);
+}
+
+@media (max-width: 920px) {
+  .ppv-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .ppv-sidebar {
+    position: static;
+  }
+}
