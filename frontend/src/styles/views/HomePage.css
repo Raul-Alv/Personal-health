@@ -1,0 +1,151 @@
+.home-page {
+  min-height: 100vh;
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 32px 24px;
+  overflow: hidden;
+}
+
+.home-card {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 620px);
+  padding: 48px 40px;
+  text-align: left;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(247, 252, 250, 0.92) 100%);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 36px;
+  box-shadow: var(--shadow-lg);
+}
+
+.home-card::after {
+  content: "";
+  position: absolute;
+  left: 40px;
+  right: 40px;
+  bottom: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(15, 118, 110, 0.28), transparent);
+}
+
+.home-eyebrow {
+  margin: 0 0 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.home-title {
+  margin: 0;
+  max-width: 12ch;
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 6vw, 4rem);
+  line-height: 1.05;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.home-copy {
+  margin: 18px 0 0;
+  max-width: 34rem;
+  font-size: 1.02rem;
+  color: var(--color-text-soft);
+}
+
+.home-actions {
+  margin-top: 2rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.home-login-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-width: 220px;
+  padding: 1rem 1.4rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--gradient-primary);
+  border-radius: 18px;
+  box-shadow: 0 18px 30px rgba(15, 118, 110, 0.22);
+}
+
+.home-login-link:hover {
+  background: var(--gradient-primary-hover);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.home-register-copy {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-text-soft);
+}
+
+.home-register-link {
+  margin-left: 0.25rem;
+  font-weight: 700;
+}
+
+.home-orb {
+  position: absolute;
+  border-radius: 999px;
+  animation: pulse 6s ease-in-out infinite;
+}
+
+.home-orb-primary {
+  top: -7rem;
+  left: -8rem;
+  width: 22rem;
+  height: 22rem;
+  background: radial-gradient(circle, rgba(15, 118, 110, 0.28), rgba(15, 118, 110, 0.04) 68%, transparent 72%);
+}
+
+.home-orb-secondary {
+  right: -12rem;
+  bottom: -11rem;
+  width: 28rem;
+  height: 28rem;
+  background: radial-gradient(circle, rgba(217, 119, 6, 0.2), rgba(22, 78, 99, 0.08) 65%, transparent 70%);
+  animation-duration: 12s;
+  animation-delay: 1.5s;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate3d(0, -12px, 0) scale(1.08);
+    opacity: 0.65;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-card {
+    padding: 34px 24px;
+    border-radius: 28px;
+  }
+
+  .home-card::after {
+    left: 24px;
+    right: 24px;
+  }
+
+  .home-title {
+    max-width: none;
+  }
+
+  .home-login-link {
+    width: 100%;
+  }
+}

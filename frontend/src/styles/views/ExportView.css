@@ -1,0 +1,211 @@
+.export-page {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.export-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 252, 250, 0.92) 100%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 32px;
+}
+
+.export-header {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.export-eyebrow {
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.export-copy {
+  margin: 0;
+  color: var(--color-text-soft);
+  line-height: 1.6;
+}
+
+.export-title,
+.section-title {
+  margin-top: 0;
+  color: var(--color-text);
+}
+
+.export-title {
+  margin-bottom: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 2.6rem);
+}
+
+.section-title {
+  margin-bottom: 10px;
+}
+
+.selector-row,
+.export-options,
+.toggle-row,
+.selection-actions,
+.summary {
+  gap: 12px;
+}
+
+.selector-row {
+  display: grid;
+  align-items: start;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.export-options,
+.selection-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-top: 14px;
+}
+
+.patient-select {
+  min-width: 260px;
+  min-height: 50px;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.patient-select:focus {
+  outline: none;
+  border-color: rgba(15, 118, 110, 0.55);
+  box-shadow: var(--focus-ring);
+}
+
+.export-section {
+  margin-top: 24px;
+}
+
+.option-btn,
+.selection-btn,
+.export-btn {
+  border-radius: 16px;
+  font-weight: 700;
+}
+
+.option-btn {
+  min-height: 72px;
+  padding: 16px 18px;
+  text-align: left;
+  border: 1px solid var(--color-border);
+  background: linear-gradient(180deg, var(--color-surface-soft), #fff);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.option-btn:hover {
+  border-color: rgba(15, 118, 110, 0.24);
+  transform: translateY(-1px);
+}
+
+.option-btn-danger {
+  border-color: rgba(180, 35, 24, 0.16);
+}
+
+.option-btn-active {
+  background: var(--gradient-primary);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 18px 30px rgba(15, 118, 110, 0.2);
+}
+
+.option-btn-danger.option-btn-active {
+  background: linear-gradient(135deg, #c2410c 0%, #b42318 100%);
+  box-shadow: 0 18px 30px rgba(180, 35, 24, 0.22);
+}
+
+.selection-box {
+  margin: 18px 0;
+  padding: 20px;
+  background: var(--gradient-accent);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.toggle-help,
+.summary p,
+.selection-count {
+  color: var(--color-text-soft);
+}
+
+.selection-actions {
+  margin-bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.selection-btn {
+  min-height: 46px;
+  padding: 0 16px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.selection-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.selection-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.selection-label {
+  cursor: pointer;
+}
+
+.summary {
+  margin: 18px 0 14px;
+  display: grid;
+  gap: 4px;
+}
+
+.export-btn {
+  min-height: 52px;
+  padding: 0 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+  border: none;
+  box-shadow: 0 18px 30px rgba(21, 128, 61, 0.2);
+}
+
+.export-btn:disabled {
+  background: #cbd5e1;
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  .export-page,
+  .export-card {
+    padding: 16px;
+  }
+}

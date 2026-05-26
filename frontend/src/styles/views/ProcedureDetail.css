@@ -1,0 +1,292 @@
+.procedure-detail-layout {
+  min-height: 100%;
+  padding: 24px;
+}
+
+.procedure-backbar {
+  margin-bottom: 16px;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.2rem 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-soft);
+  font-weight: 700;
+}
+
+.back-btn:hover {
+  color: var(--color-primary);
+}
+
+.procedure-main {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(20rem, 2fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.procedure-data-panel,
+.dental-map-box,
+.modal-content {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 252, 250, 0.92) 100%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.procedure-data-panel {
+  padding: 30px;
+}
+
+.panel-header,
+.panel-actions,
+.legend,
+.modal-footer {
+  display: flex;
+  gap: 12px;
+}
+
+.panel-header {
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.modal-footer {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.field-card {
+  min-width: 0;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(242, 250, 247, 0.8);
+  border: 1px solid var(--color-border);
+}
+
+.field-card-full {
+  grid-column: 1 / -1;
+}
+
+.detail-title,
+.section-title,
+.modal-title {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.detail-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 2.4rem);
+}
+
+.label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--color-text-soft);
+  font-weight: 700;
+  font-size: 0.92rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.detail-value {
+  color: var(--color-text);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.detail-value.monospace {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.9rem;
+  word-break: break-word;
+}
+
+.icon-btn,
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  border-radius: 16px;
+  padding: 0 16px;
+  font-weight: 700;
+}
+
+.icon-btn {
+  background: var(--color-surface);
+  color: var(--color-danger);
+  border: 1px solid rgba(180, 35, 24, 0.18);
+}
+
+.icon-btn:hover {
+  background: var(--color-danger-soft);
+}
+
+.action-btn {
+  background: var(--gradient-primary);
+  color: #fff;
+  border: none;
+  box-shadow: 0 16px 28px rgba(15, 118, 110, 0.18);
+}
+
+.action-btn:hover {
+  background: var(--gradient-primary-hover);
+  transform: translateY(-1px);
+}
+
+.dental-map-panel {
+  min-width: 0;
+}
+
+.dental-map-box {
+  height: 100%;
+  min-height: 520px;
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(242, 250, 247, 0.94) 100%);
+}
+
+.dental-svg-container {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.svg-fluid {
+  width: 100%;
+  max-width: 26rem;
+}
+
+.svg-fluid :deep(svg) {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-width: 26rem;
+  max-height: 100%;
+}
+
+.section-subtitle {
+  margin: -2px 0 0;
+  color: var(--color-text-soft);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.legend {
+  align-self: stretch;
+  justify-content: center;
+  flex-wrap: wrap;
+  color: var(--color-text-soft);
+  font-size: 0.92rem;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 5px;
+}
+
+.legend-danger {
+  background: linear-gradient(135deg, #c2410c 0%, #b42318 100%);
+}
+
+.legend-secondary {
+  background: #b7c8c6;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.modal-dialog-centered {
+  width: min(100%, 420px);
+}
+
+.modal-content {
+  padding: 24px;
+}
+
+.modal-text {
+  margin: 12px 0 20px;
+  color: var(--color-text-soft);
+}
+
+.modal-footer {
+  justify-content: flex-end;
+}
+
+.action-btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  box-shadow: none;
+}
+
+.action-btn-danger {
+  background: linear-gradient(135deg, #c2410c 0%, #b42318 100%);
+  color: #fff;
+  border: none;
+  box-shadow: none;
+}
+
+@media (max-width: 60rem) {
+  .procedure-main {
+    grid-template-columns: 1fr;
+  }
+
+  .dental-map-box {
+    min-height: 320px;
+  }
+}
+
+@media (max-width: 640px) {
+  .field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .procedure-detail-layout,
+  .procedure-data-panel,
+  .dental-map-box {
+    padding: 16px;
+  }
+
+  .panel-header,
+  .modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

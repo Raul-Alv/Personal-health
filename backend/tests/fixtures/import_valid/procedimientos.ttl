@@ -1,0 +1,31 @@
+@prefix fhir: <http://hl7.org/fhir/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://hl7.org/fhir/Procedure/proc-001> a fhir:Procedure ;
+  fhir:Procedure.status [ fhir:value "completed" ] ;
+  fhir:Procedure.subject [
+    fhir:Reference.reference [ fhir:value "Patient/pac-001" ] ;
+    fhir:Reference.type [ fhir:value "Patient" ]
+  ] ;
+  fhir:Procedure.code [
+    fhir:CodeableConcept.coding [
+      fhir:Coding.code [ fhir:value "D1110" ] ;
+      fhir:Coding.system [ fhir:value "http://example.org/codes/dental"^^xsd:anyURI ] ;
+      fhir:Coding.display [ fhir:value "Limpieza dental" ]
+    ] ;
+    fhir:CodeableConcept.text [ fhir:value "Limpieza dental" ]
+  ] ;
+  fhir:Procedure.performedDateTime [ fhir:value "2026-05-20T10:30:00"^^xsd:dateTime ] ;
+  fhir:Procedure.performer [
+    fhir:Procedure.performer.actor [
+      fhir:Reference.reference [ fhir:value "Practitioner/dra-lopez" ] ;
+      fhir:Reference.type [ fhir:value "Practitioner" ]
+    ]
+  ] ;
+  fhir:Procedure.bodySite [
+    fhir:CodeableConcept.coding [
+      fhir:Coding.code [ fhir:value "16" ] ;
+      fhir:Coding.display [ fhir:value "Molar superior derecho" ]
+    ] ;
+    fhir:CodeableConcept.text [ fhir:value "Pieza 16" ]
+  ] .

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="800" height="1000"
+  viewBox="0 0 800 1000"
+  role="img"
+  aria-label="Diagrama de arcadas dentales"
+  
+>
+  <!-- Aquí incrustamos el PNG como fondo -->
+  <image
+    href="f2d89604-4e7e-4d9e-bf01-2128b32d1220.png"
+    x="0" y="0"
+    width="800" height="1000"
+    preserveAspectRatio="xMidYMid meet"/>
+
+  <style>
+    .tooth {
+      fill: white;
+      stroke: #000;
+      stroke-width: 2;
+    }
+  </style>
+
+  <!-- ======== ARCADA SUPERIOR ======== -->
+  <g id="upper-arch">
+    <!-- Cuadrante superior derecho: 18 → 11 -->
+    <path id="tooth-18" class="tooth" d="M…Z" />
+    <path id="tooth-17" class="tooth" d="M…Z" />
+    <path id="tooth-16" class="tooth" d="M…Z" />
+    <path id="tooth-15" class="tooth" d="M…Z" />
+    <path id="tooth-14" class="tooth" d="M…Z" />
+    <path id="tooth-13" class="tooth" d="M…Z" />
+    <path id="tooth-12" class="tooth" d="M…Z" />
+    <path id="tooth-11" class="tooth" d="M…Z" />
+
+    <!-- Cuadrante superior izquierdo: 21 → 28 -->
+    <path id="tooth-21" class="tooth" d="M…Z" />
+    <path id="tooth-22" class="tooth" d="M…Z" />
+    <path id="tooth-23" class="tooth" d="M…Z" />
+    <path id="tooth-24" class="tooth" d="M…Z" />
+    <path id="tooth-25" class="tooth" d="M…Z" />
+    <path id="tooth-26" class="tooth" d="M…Z" />
+    <path id="tooth-27" class="tooth" d="M…Z" />
+    <path id="tooth-28" class="tooth" d="M…Z" />
+  </g>
+
+  <!-- ======== ARCADA INFERIOR ======== -->
+  <g id="lower-arch">
+    <!-- Cuadrante inferior izquierdo: 38 → 31 -->
+    <path id="tooth-38" class="tooth" d="M…Z" />
+    <path id="tooth-37" class="tooth" d="M…Z" />
+    <path id="tooth-36" class="tooth" d="M…Z" />
+    <path id="tooth-35" class="tooth" d="M…Z" />
+    <path id="tooth-34" class="tooth" d="M…Z" />
+    <path id="tooth-33" class="tooth" d="M…Z" />
+    <path id="tooth-32" class="tooth" d="M…Z" />
+    <path id="tooth-31" class="tooth" d="M…Z" />
+
+    <!-- Cuadrante inferior derecho: 41 → 48 -->
+    <path id="tooth-41" class="tooth" d="M…Z" />
+    <path id="tooth-42" class="tooth" d="M…Z" />
+    <path id="tooth-43" class="tooth" d="M…Z" />
+    <path id="tooth-44" class="tooth" d="M…Z" />
+    <path id="tooth-45" class="tooth" d="M…Z" />
+    <path id="tooth-46" class="tooth" d="M…Z" />
+
+	</g>
+</svg>
