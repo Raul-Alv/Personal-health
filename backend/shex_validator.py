@@ -1,18 +1,19 @@
-from pyshex import ShExEvaluator
+from pathlib import Path
+
 from rdflib import Graph
 
-def validate_shex(rdf_path:str, shex_path:str, focus: str) -> bool:
-    with open(shex_path, 'r') as f:
-        schema = f.read()
+from services.fhir_package_service import FhirPackageService
 
-    g = Graph()
-    g.parse(data=rdf_path, format="turtle")
 
-    evaluator = ShExEvaluator(
-        rdf = g.serialize(format="turtle"),
-        schema = schema,
-        focus=focus,
-        start="start"
-    ).evaluate()
+def validate_shex(rdf_path: str, shex_path: str, focus: str | None = None) -> list[tuple[str, str, str]]:
+    graph = Graph()
+    graph.parse(rdf_path, format="turtle")
+    schema = Path(shex_path).read_text(encoding="utf-8")
 
-    return [(r.focus, r.result, r.reason) for r in evaluator]
+    package_service = FhirPackageService()
+    errors = package_service.validate_graph(graph=graph, schema_str=schema)
+
+    if focus:
+        errors = [item for item in errors if item["focus"] == focus]
+
+    return [(item["focus"], item["shape"], item["reason"]) for item in errors]

@@ -1,9 +1,9 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import DentaduraIconoSvg from '@/assets/Human_dental_arches.svg?component'
+import dentalSvgMarkup from '@/assets/Human_dental_arches.svg?raw'
 import api from '@/api/axios'
 
-export { DentaduraIconoSvg }
+export { dentalSvgMarkup }
 
 export function useProcedureDetailView(props) {
   const router = useRouter()
@@ -22,7 +22,7 @@ export function useProcedureDetailView(props) {
 
   const hasDentalData = computed(() => activeTeeth.value.length > 0)
 
-  const getSvgRoot = () => icono.value?.$el ?? icono.value
+  const getSvgRoot = () => icono.value?.querySelector('svg') ?? null
 
   const paintTeeth = async () => {
     await nextTick()
@@ -56,7 +56,15 @@ export function useProcedureDetailView(props) {
     }
   }
 
-  const onExport = () => {}
+  const onExport = () => {
+    router.push({
+      path: '/export/',
+      query: {
+        patientId: String(props.patient_id),
+        tipo: 'procedimientos'
+      }
+    })
+  }
 
   const goBack = () => {
     router.push(`/patient/${props.patient_id}/procedimientos`)
@@ -67,7 +75,7 @@ export function useProcedureDetailView(props) {
       await api.delete(`/mis_pacientes/${props.patient_id}/delete/procedimientos/${props.procedure_id}`)
       goBack()
     } catch (deleteError) {
-      console.error('Error al borrar el procedimiento:', deleteError)
+      console.error('Error al eliminar el procedimiento:', deleteError)
     } finally {
       confirmDelete.value = false
     }
@@ -78,6 +86,7 @@ export function useProcedureDetailView(props) {
 
   return {
     icono,
+    dentalSvgMarkup,
     procedures,
     activeTeeth,
     hasDentalData,

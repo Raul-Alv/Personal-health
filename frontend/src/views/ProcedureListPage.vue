@@ -3,6 +3,17 @@
     <div class="ppv-content">
       <div class="ppv-layout">
         <section class="ppv-main">
+          <div class="ppv-main-header">
+            <div>
+              <p class="ppv-kicker">Actividad clínica</p>
+              <h1>Procedimientos</h1>
+              <p class="ppv-main-copy">
+                Consulta el historial del paciente y filtra los resultados por nombre, fecha, profesional o diente.
+              </p>
+            </div>
+            <span class="ppv-counter">{{ procedures.length }} resultado<span v-if="procedures.length !== 1">s</span></span>
+          </div>
+
           <div class="ppv-list">
             <div
               v-for="proc in procedures"
@@ -23,8 +34,9 @@
                 class="ppv-delete-btn"
                 @click.stop="deleteProcedure(proc)"
                 title="Eliminar procedimiento"
+                type="button"
               >
-                X
+                <Trash2 :size="16" />
               </button>
             </div>
 
@@ -47,7 +59,7 @@
           <div class="ppv-sidebar-card">
             <div class="ppv-sidebar-header">
               <h2>Filtros</h2>
-              <p>Busca por nombre, fecha, practicante o diente usando consultas SPARQL.</p>
+              <p>Busca por nombre, fecha, profesional o diente con filtros sobre los datos clínicos.</p>
             </div>
 
             <form class="ppv-filter-form" @submit.prevent="applyFilters">
@@ -57,7 +69,7 @@
                   v-model="filters.nombre"
                   class="ppv-filter-input"
                   type="text"
-                  placeholder="Ej. Extraccion"
+                  placeholder="Ej. Extracción"
                 >
               </label>
 
@@ -72,7 +84,7 @@
               </label>
 
               <label class="ppv-filter-group">
-                <span class="ppv-filter-label">Practicante</span>
+                <span class="ppv-filter-label">Profesional</span>
                 <input
                   v-model="filters.practicante"
                   class="ppv-filter-input"
@@ -117,6 +129,7 @@
 </template>
 
 <script setup>
+import { Trash2 } from 'lucide-vue-next'
 import { useProcedureListPageView } from '@/scripts/views/procedureListPageView'
 
 const props = defineProps({

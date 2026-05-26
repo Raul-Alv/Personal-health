@@ -82,7 +82,7 @@ export function useProcedureListPageView(props) {
   }
 
   const deleteProcedure = async (procedure) => {
-    if (!confirm('Seguro que quieres eliminar este procedimiento?')) return
+    if (!confirm('¿Seguro que quieres eliminar este procedimiento?')) return
 
     try {
       await api.delete(`/mis_pacientes/${props.patient_id}/delete/procedimientos/${getProcedureId(procedure)}`)
@@ -90,7 +90,7 @@ export function useProcedureListPageView(props) {
         (currentProcedure) => currentProcedure.procedure_uri !== procedure.procedure_uri
       )
     } catch (deleteError) {
-      alert('Error al eliminar')
+      alert('No se pudo eliminar el procedimiento.')
       console.error(deleteError)
     }
   }

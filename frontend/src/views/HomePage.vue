@@ -1,25 +1,29 @@
 <template>
   <div class="home-page">
     <div class="home-card">
+      <p class="home-eyebrow">Gestión de salud personal</p>
       <h1 class="home-title">
-        Bienvenido a App Salud
+        Una interfaz más clara para tu información clínica
       </h1>
+      <p class="home-copy">
+        Accede a tus pacientes, procedimientos y alergias desde un espacio ordenado, sin distracciones y con un lenguaje más cuidado.
+      </p>
 
       <div class="home-actions">
         <router-link
           to="/login"
           class="home-login-link"
         >
-          Iniciar Sesión
+          Iniciar sesión
         </router-link>
 
-        <p class="home-copy">
-          ¿No tienes cuenta?
+        <p class="home-register-copy">
+          ¿Todavía no tienes cuenta?
           <router-link
             to="/register"
             class="home-register-link"
           >
-            Regístrate
+            Crear una cuenta
           </router-link>
         </p>
       </div>

@@ -14,7 +14,7 @@
             d="M15 8a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 0 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 7.5H14.5A.5.5 0 0 1 15 8z"
           />
         </svg>
-        <span>Vuelta a la lista</span>
+        <span>Volver a la lista</span>
       </button>
     </div>
 
@@ -26,7 +26,8 @@
           </h1>
 
           <div class="panel-actions">
-            <button class="icon-btn" @click="confirmDelete = true" title="Borrar">
+            <button class="icon-btn" @click="confirmDelete = true" title="Eliminar procedimiento" type="button">
+              <Trash2 :size="16" />
               Eliminar
             </button>
           </div>
@@ -49,13 +50,13 @@
           </div>
 
           <div class="field-card">
-            <span class="label">Doctor</span>
+            <span class="label">Profesional responsable</span>
             <div class="detail-value">{{ procedures[0]?.performerRef || '-' }}</div>
           </div>
 
           <div class="field-card field-card-full">
             <span class="label">Notas</span>
-            <div class="detail-value">{{ procedures[0]?.notes || 'Aquí van las notas' }}</div>
+            <div class="detail-value">{{ procedures[0]?.notes || 'Sin notas registradas' }}</div>
           </div>
 
           <div class="field-card field-card-full">
@@ -65,7 +66,7 @@
         </div>
 
         <div class="panel-actions">
-          <button class="action-btn" @click="onExport">Exportar</button>
+          <button class="action-btn" @click="onExport" type="button">Ir a exportación</button>
         </div>
       </section>
 
@@ -81,7 +82,7 @@
           </p>
 
           <div class="dental-svg-container">
-            <DentaduraIconoSvg ref="icono" class="svg-fluid" />
+            <div ref="icono" class="svg-fluid" v-html="dentalSvgMarkup"></div>
           </div>
 
           <div class="legend">
@@ -99,13 +100,13 @@
     <div v-if="confirmDelete" class="modal-backdrop">
       <div class="modal-dialog-centered">
         <div class="modal-content">
-          <h3 class="modal-title">Borrar procedimiento</h3>
+          <h3 class="modal-title">Eliminar procedimiento</h3>
           <p class="modal-text">
-            Esta acción no se puede deshacer. ¿Seguro que quieres eliminarlo?
+            Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este procedimiento?
           </p>
           <div class="modal-footer">
-            <button class="action-btn action-btn-secondary" @click="confirmDelete = false">Cancelar</button>
-            <button class="action-btn action-btn-danger" @click="onDelete">Borrar</button>
+            <button class="action-btn action-btn-secondary" @click="confirmDelete = false" type="button">Cancelar</button>
+            <button class="action-btn action-btn-danger" @click="onDelete" type="button">Eliminar</button>
           </div>
         </div>
       </div>
@@ -114,8 +115,9 @@
 </template>
 
 <script setup>
+import { Trash2 } from 'lucide-vue-next'
 import {
-  DentaduraIconoSvg,
+  dentalSvgMarkup,
   useProcedureDetailView
 } from '@/scripts/views/procedureDetailView'
 

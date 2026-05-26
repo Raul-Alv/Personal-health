@@ -1,0 +1,17 @@
+@prefix fhir: <http://hl7.org/fhir/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://hl7.org/fhir/Procedure/proc-404> a fhir:Procedure ;
+  fhir:Procedure.status [ fhir:value "completed" ] ;
+  fhir:Procedure.subject [
+    fhir:Reference.reference [ fhir:value "Patient/pac-404" ] ;
+    fhir:Reference.type [ fhir:value "Patient" ]
+  ] ;
+  fhir:Procedure.code [
+    fhir:CodeableConcept.coding [
+      fhir:Coding.code [ fhir:value "D7140" ] ;
+      fhir:Coding.display [ fhir:value "Extraccion dental" ]
+    ] ;
+    fhir:CodeableConcept.text [ fhir:value "Extraccion dental" ]
+  ] ;
+  fhir:Procedure.performedDateTime [ fhir:value "2026-05-22T12:00:00"^^xsd:dateTime ] .

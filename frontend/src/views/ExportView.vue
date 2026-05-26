@@ -1,12 +1,18 @@
 <template>
   <div class="export-page">
     <div class="export-card">
-      <h1 class="export-title">Exportación de datos</h1>
+      <div class="export-header">
+        <p class="export-eyebrow">Exportacion</p>
+        <h1 class="export-title">Exportar datos clinicos</h1>
+        <p class="export-copy">
+          Selecciona un paciente y el conjunto de datos que quieres descargar en formato RDF junto con el esquema ShEx de validacion.
+        </p>
+      </div>
 
       <div class="selector-row">
-        <label class="section-title" for="selected-patient">Selecciona un paciente:</label>
+        <label class="section-title" for="selected-patient">Selecciona un paciente</label>
         <select id="selected-patient" v-model="selectedPatient" @change="loadPatientData" class="patient-select">
-          <option disabled value="">-- Escoge un paciente --</option>
+          <option disabled value="">Elige un paciente</option>
           <option v-for="p in pacientes" :key="p.id" :value="p.id">
             {{ p.nombre }} {{ p.apellido }}
           </option>
@@ -14,21 +20,25 @@
       </div>
 
       <div v-if="selectedPatient" class="export-section">
-        <h2 class="section-title">Opciones de exportación</h2>
+        <h2 class="section-title">Que deseas exportar</h2>
         <div class="export-options">
           <button
             v-if="procedimientos.length"
             @click="setTipo('procedimientos')"
-            class="option-btn"
+            :class="['option-btn', { 'option-btn-active': tipoSeleccionado === 'procedimientos' }]"
           >
-            Procedimientos ({{ procedimientos.length }})
+            Procedimientos disponibles ({{ procedimientos.length }})
           </button>
           <button
             v-if="alergias.length"
             @click="setTipo('alergias')"
-            class="option-btn option-btn-danger"
+            :class="[
+              'option-btn',
+              'option-btn-danger',
+              { 'option-btn-active': tipoSeleccionado === 'alergias' }
+            ]"
           >
-            Alergias ({{ alergias.length }})
+            Alergias registradas ({{ alergias.length }})
           </button>
         </div>
       </div>
@@ -44,11 +54,11 @@
               v-model="incluirPaciente"
             />
             <label for="incluir-paciente">
-              Incluir datos del paciente en la exportación
+              Incluir datos del paciente en la exportacion
             </label>
           </div>
           <p class="toggle-help">
-            Si está activado, se incluirán los datos personales del paciente junto con los {{ tipoSeleccionado }} seleccionados.
+            Si esta activado, se anadiran los datos personales del paciente junto con los {{ tipoSeleccionado }} seleccionados.
           </p>
         </div>
 
@@ -76,8 +86,8 @@
         </ul>
 
         <div class="summary">
-          <p class="selection-count">Seleccionados: {{ seleccionados.length }} {{ tipoSeleccionado }}</p>
-          <p>Datos del paciente: {{ incluirPaciente ? 'Incluidos' : 'No incluidos' }}</p>
+          <p class="selection-count">Elementos seleccionados: {{ seleccionados.length }}</p>
+          <p>Datos del paciente: {{ incluirPaciente ? 'incluidos' : 'no incluidos' }}</p>
         </div>
 
         <button
@@ -85,7 +95,7 @@
           :disabled="seleccionados.length === 0"
           class="export-btn"
         >
-          Exportar seleccionados ({{ seleccionados.length }})
+          Exportar seleccion ({{ seleccionados.length }})
         </button>
       </div>
     </div>

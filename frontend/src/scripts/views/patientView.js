@@ -12,15 +12,15 @@ const genderOptions = [
 const maritalStatusOptions = [
   { value: 'A', label: 'Anulado' },
   { value: 'D', label: 'Divorciado' },
-  { value: 'I', label: 'Interlocutorio' },
-  { value: 'L', label: 'Legalmente separado' },
+  { value: 'I', label: 'Separación provisional' },
+  { value: 'L', label: 'Separado legalmente' },
   { value: 'M', label: 'Casado' },
-  { value: 'C', label: 'Ley común' },
+  { value: 'C', label: 'Unión libre' },
   { value: 'P', label: 'Poligamia' },
   { value: 'T', label: 'Pareja de hecho' },
-  { value: 'U', label: 'Sin contrato nupcial' },
+  { value: 'U', label: 'No casado' },
   { value: 'S', label: 'Soltero' },
-  { value: 'W', label: 'Viudo/a' }
+  { value: 'W', label: 'Viudo' }
 ]
 
 const genderLabels = Object.fromEntries(genderOptions.map((option) => [option.value, option.label]))
@@ -220,7 +220,7 @@ export function usePatientView(props) {
       patient.address.provincia = row.provincia || ''
       patient.address.pais = row.pais || ''
     } catch (fetchError) {
-      error.value = fetchError.response?.data?.detail || 'Error al cargar datos (revisa token o permisos)'
+      error.value = fetchError.response?.data?.detail || 'Error al cargar los datos. Revisa el token o tus permisos.'
       console.error(fetchError)
     }
   }

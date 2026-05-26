@@ -1,5 +1,16 @@
 <template>
   <div class="ppv-container">
+    <div class="ppv-list-header">
+      <div>
+        <p class="ppv-kicker">Seguimiento clínico</p>
+        <h1>Alergias</h1>
+        <p class="ppv-main-copy">
+          Revisa las alergias registradas del paciente y accede rápidamente a sus datos principales.
+        </p>
+      </div>
+      <span class="ppv-counter">{{ allergies.length }} registro<span v-if="allergies.length !== 1">s</span></span>
+    </div>
+
     <div class="ppv-list">
       <div
         v-for="al in allergies"
@@ -15,6 +26,7 @@
       </div>
       <div v-if="loading" class="ppv-loading">Cargando...</div>
       <div v-if="error" class="ppv-error">Error al cargar</div>
+      <div v-else-if="!allergies.length" class="ppv-empty">No hay alergias registradas para este paciente.</div>
     </div>
   </div>
 </template>

@@ -1,0 +1,180 @@
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+# Perfil RDF/ShEx de la app para recursos FHIR R4.
+# Mantiene la convención RDF ya usada en el proyecto
+# (fhir:value, fhir:Reference.reference, etc.) y acota
+# los valores según los códigos oficiales de HL7 FHIR.
+
+start = @<PatientShape>
+
+<PatientShape> {
+  rdf:type [fhir:Patient] ;
+  fhir:Patient.name @<HumanNameShape>+ ;
+  fhir:Patient.gender @<AdministrativeGenderShape> ;
+  fhir:Patient.birthDate @<DateLikeShape> ;
+  fhir:Patient.active @<BooleanLikeShape>? ;
+  fhir:Patient.identifier @<IdentifierShape>* ;
+  fhir:Patient.telecom @<ContactPointShape>* ;
+  fhir:Patient.address @<AddressShape>* ;
+  fhir:Patient.maritalStatus @<MaritalStatusShape>?
+}
+
+<HumanNameShape> {
+  fhir:HumanName.family @<StringLikeShape> ;
+  fhir:HumanName.given @<StringLikeShape>+
+}
+
+<IdentifierShape> {
+  fhir:Identifier.value @<StringLikeShape> ;
+  fhir:Identifier.system @<UriLikeShape>?
+}
+
+<ContactPointShape> {
+  fhir:ContactPoint.value @<StringLikeShape> ;
+  fhir:ContactPoint.system @<ContactPointSystemShape>?
+}
+
+<ContactPointSystemShape> {
+  fhir:value [ "phone" "fax" "email" "pager" "url" "sms" "other" ]
+} OR [ "phone" "fax" "email" "pager" "url" "sms" "other" ]
+
+<AddressShape> {
+  fhir:Address.line @<StringLikeShape>* ;
+  fhir:Address.city @<StringLikeShape>? ;
+  fhir:Address.state @<StringLikeShape>? ;
+  fhir:Address.postalCode @<StringLikeShape>? ;
+  fhir:Address.country @<StringLikeShape>?
+}
+
+<AdministrativeGenderShape> {
+  fhir:value [ "male" "female" "other" "unknown" ]
+} OR [ "male" "female" "other" "unknown" ]
+
+<MaritalStatusShape> {
+  fhir:value [ "A" "C" "D" "I" "L" "M" "P" "S" "T" "U" "W" "UNK" ]
+} OR [ "A" "C" "D" "I" "L" "M" "P" "S" "T" "U" "W" "UNK" ] OR {
+  fhir:CodeableConcept.coding @<MaritalStatusCodingShape>+ ;
+  fhir:CodeableConcept.text @<StringLikeShape>?
+}
+
+<MaritalStatusCodingShape> {
+  fhir:Coding.code @<MaritalStatusCodeShape> ;
+  fhir:Coding.system @<UriLikeShape>? ;
+  fhir:Coding.display @<StringLikeShape>?
+}
+
+<MaritalStatusCodeShape> {
+  fhir:value [ "A" "C" "D" "I" "L" "M" "P" "S" "T" "U" "W" "UNK" ]
+} OR [ "A" "C" "D" "I" "L" "M" "P" "S" "T" "U" "W" "UNK" ]
+
+<ProcedureShape> {
+  rdf:type [fhir:Procedure] ;
+  fhir:Procedure.status @<ProcedureStatusShape> ;
+  fhir:Procedure.subject @<ReferenceShape> ;
+  fhir:Procedure.code @<CodeableConceptShape>? ;
+  fhir:Procedure.performedDateTime @<DateLikeShape>? ;
+  fhir:Procedure.performer @<ProcedurePerformerShape>* ;
+  fhir:Procedure.bodySite @<CodeableConceptShape>*
+}
+
+<ProcedurePerformerShape> {
+  fhir:Procedure.performer.actor @<ReferenceShape>
+}
+
+<ProcedureStatusShape> {
+  fhir:value [ "preparation" "in-progress" "not-done" "on-hold" "stopped" "completed" "entered-in-error" "unknown" ]
+} OR [ "preparation" "in-progress" "not-done" "on-hold" "stopped" "completed" "entered-in-error" "unknown" ]
+
+<AllergyIntoleranceShape> {
+  rdf:type [fhir:AllergyIntolerance] ;
+  fhir:AllergyIntolerance.patient @<ReferenceShape> ;
+  fhir:AllergyIntolerance.code @<CodeableConceptShape> ;
+  fhir:AllergyIntolerance.clinicalStatus @<ClinicalStatusShape>? ;
+  fhir:AllergyIntolerance.verificationStatus @<VerificationStatusShape>? ;
+  fhir:AllergyIntolerance.category @<AllergyCategoryShape>* ;
+  fhir:AllergyIntolerance.criticality @<AllergyCriticalityShape>? ;
+  fhir:AllergyIntolerance.onsetDateTime @<DateLikeShape>? ;
+  fhir:AllergyIntolerance.recorder @<ReferenceShape>? ;
+  fhir:AllergyIntolerance.asserter @<ReferenceShape>? ;
+  fhir:AllergyIntolerance.actor @<ReferenceShape>?
+}
+
+<ClinicalStatusShape> {
+  fhir:CodeableConcept.coding @<ClinicalStatusCodingShape>+ ;
+  fhir:CodeableConcept.text @<StringLikeShape>?
+}
+
+<ClinicalStatusCodingShape> {
+  fhir:Coding.code @<ClinicalStatusCodeShape> ;
+  fhir:Coding.system @<UriLikeShape>? ;
+  fhir:Coding.display @<StringLikeShape>?
+}
+
+<ClinicalStatusCodeShape> {
+  fhir:value [ "active" "inactive" "resolved" ]
+} OR [ "active" "inactive" "resolved" ]
+
+<VerificationStatusShape> {
+  fhir:CodeableConcept.coding @<VerificationStatusCodingShape>+ ;
+  fhir:CodeableConcept.text @<StringLikeShape>?
+}
+
+<VerificationStatusCodingShape> {
+  fhir:Coding.code @<VerificationStatusCodeShape> ;
+  fhir:Coding.system @<UriLikeShape>? ;
+  fhir:Coding.display @<StringLikeShape>?
+}
+
+<VerificationStatusCodeShape> {
+  fhir:value [ "unconfirmed" "confirmed" "refuted" "entered-in-error" ]
+} OR [ "unconfirmed" "confirmed" "refuted" "entered-in-error" ]
+
+<AllergyCategoryShape> {
+  fhir:value [ "food" "medication" "environment" "biologic" ]
+} OR [ "food" "medication" "environment" "biologic" ]
+
+<AllergyCriticalityShape> {
+  fhir:value [ "low" "high" "unable-to-assess" ]
+} OR [ "low" "high" "unable-to-assess" ]
+
+<CodeableConceptShape> {
+  fhir:CodeableConcept.coding @<CodingShape>+ ;
+  fhir:CodeableConcept.text @<StringLikeShape>?
+}
+
+<CodingShape> {
+  fhir:Coding.code @<StringLikeShape> ;
+  fhir:Coding.system @<UriLikeShape>? ;
+  fhir:Coding.display @<StringLikeShape>?
+}
+
+<ReferenceShape> {
+  fhir:Reference.reference @<StringLikeShape> ;
+  fhir:Reference.type @<StringLikeShape>?
+}
+
+<StringLikeShape> {
+  fhir:value xsd:string
+} OR xsd:string
+
+<UriLikeShape> {
+  fhir:value xsd:anyURI
+} OR {
+  fhir:value xsd:string
+} OR xsd:anyURI OR xsd:string
+
+<DateLikeShape> {
+  fhir:value xsd:date
+} OR {
+  fhir:value xsd:dateTime
+} OR {
+  fhir:value xsd:string
+} OR xsd:date OR xsd:dateTime OR xsd:string
+
+<BooleanLikeShape> {
+  fhir:value xsd:boolean
+} OR {
+  fhir:value [ "true" "false" ]
+} OR xsd:boolean OR [ "true" "false" ]

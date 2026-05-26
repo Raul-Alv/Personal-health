@@ -34,7 +34,7 @@ export function useRegisterView() {
       saveSessionToken(res.data.access_token)
       router.push('/profile')
     } catch (registerError) {
-      alert(registerError.response?.data?.detail || 'Error al registrar')
+      alert(registerError.response?.data?.detail || 'No se pudo completar el registro.')
     }
   }
 

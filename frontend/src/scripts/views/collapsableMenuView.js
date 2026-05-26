@@ -55,7 +55,10 @@ export function useCollapsableMenuView() {
 
   const navegarExportar = (patientId) => {
     if (patientId) {
-      router.push('/export/')
+      router.push({
+        path: '/export/',
+        query: { patientId: String(patientId) }
+      })
       return
     }
 

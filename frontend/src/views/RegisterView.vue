@@ -1,15 +1,22 @@
 <template>
   <div class="register-wrapper">
     <div class="register-box">
-      <h2 class="title">Registro</h2>
+      <div class="auth-header">
+        <p class="auth-eyebrow">Alta de usuario</p>
+        <h1 class="title">Crear cuenta</h1>
+        <p class="auth-copy">
+          Registra tu acceso para gestionar tu información de salud en un entorno más claro y consistente.
+        </p>
+      </div>
       <form @submit.prevent="register">
         <div class="form-group">
-          <label for="email">Email</label>
+          <label for="email">Correo electrónico</label>
           <input
             id="email"
             type="email"
             v-model="email"
-            placeholder="tu@correo.com"
+            placeholder="nombre@correo.com"
+            autocomplete="email"
             required
           />
         </div>
@@ -33,6 +40,7 @@
               id="password"
               v-model="password"
               placeholder="********"
+              autocomplete="new-password"
               required
             />
             <button
@@ -46,13 +54,14 @@
         </div>
 
         <div class="form-group">
-          <label for="confirm">Repetir Contraseña</label>
+          <label for="confirm">Confirmar contraseña</label>
           <div class="password-input">
             <input
               :type="showConfirm ? 'text' : 'password'"
               id="confirm"
               v-model="confirm"
               placeholder="********"
+              autocomplete="new-password"
               required
             />
             <button
@@ -65,13 +74,13 @@
           </div>
         </div>
 
-        <button type="submit" class="submit-btn">Crear Cuenta</button>
+        <button type="submit" class="submit-btn">Crear cuenta</button>
       </form>
 
       <p class="bottom-text">
         ¿Ya tienes cuenta?
         <router-link to="/login" class="login-link">
-          Inicia sesión
+          Iniciar sesión
         </router-link>
       </p>
     </div>

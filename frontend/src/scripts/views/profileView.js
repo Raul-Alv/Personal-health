@@ -3,6 +3,23 @@ import { useRouter } from 'vue-router'
 import api from '@/api/axios'
 import { clearSession } from '@/scripts/shared/session'
 
+function formatImportValidationErrors(detail) {
+  const validation = detail?.validation_errors
+  if (!Array.isArray(validation) || !validation.length) {
+    return detail?.message || detail || 'No se pudo importar el archivo'
+  }
+
+  const summary = validation
+    .map((item) => {
+      const shape = item?.shape || 'ShEx'
+      const focus = item?.focus ? ` [${item.focus}]` : ''
+      return `${shape}${focus}: ${item?.reason || 'Error de validacion no especificado.'}`
+    })
+    .join(' | ')
+
+  return detail?.message ? `${detail.message} ${summary}` : summary
+}
+
 export function useProfileView() {
   const router = useRouter()
 
@@ -181,7 +198,7 @@ export function useProfileView() {
 
   const confirmImportPatient = async () => {
     if (!selectedImportFiles.value.length) {
-      importError.value = 'Debes seleccionar un archivo .ttl.'
+      importError.value = 'Debes seleccionar RDF + ShEx, o un ZIP exportado por la aplicacion.'
       return
     }
 
@@ -211,7 +228,7 @@ export function useProfileView() {
         router.push(frontendRedirect)
       }
     } catch (importPatientError) {
-      importError.value = importPatientError.response?.data?.detail || 'No se pudo importar el archivo'
+      importError.value = formatImportValidationErrors(importPatientError.response?.data?.detail)
       console.error(importPatientError)
     } finally {
       importing.value = false
@@ -248,7 +265,7 @@ export function useProfileView() {
       user.email = edited.email
 
       isEditing.value = false
-      success.value = 'Perfil actualizado correctamente'
+      success.value = 'Perfil actualizado correctamente.'
     } catch (saveError) {
       error.value = saveError.response?.data?.detail || 'No se pudo guardar el perfil'
       console.error(saveError)

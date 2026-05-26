@@ -5,6 +5,9 @@
         <div>
           <p class="eyebrow">Mi perfil</p>
           <h1>{{ user.nombre || 'Usuario' }}</h1>
+          <p class="profile-copy">
+            Administra tus datos de acceso y organiza el paciente principal asociado a tu cuenta.
+          </p>
         </div>
 
         <div class="actions">
@@ -56,7 +59,7 @@
         </div>
 
         <div class="form-row">
-          <label>Email</label>
+          <label>Correo electrónico</label>
           <template v-if="isEditing">
             <input v-model="edited.email" type="email" class="input" />
           </template>
@@ -71,7 +74,7 @@
             Cambiar contraseña
           </button>
           <small v-if="passwordChanged" class="helper-text success-text">
-            Se cambiará la contraseña al guardar el perfil.
+            La contraseña se actualizará al guardar el perfil.
           </small>
         </div>
       </div>
@@ -108,10 +111,11 @@
               v-if="isEditing"
               class="star-btn"
               type="button"
-              title="Poner como predeterminado"
+              title="Convertir en paciente predeterminado"
+              aria-label="Convertir en paciente predeterminado"
               @click.stop="askSetDefault(patient)"
             >
-              ★
+              <Star :size="16" />
             </button>
 
             <button
@@ -126,9 +130,10 @@
             class="add-patient-btn"
             type="button"
             title="Importar paciente principal"
+            aria-label="Importar paciente principal"
             @click="openImportModal"
           >
-            +
+            <Plus :size="18" />
           </button>
         </div>
       </div>
@@ -189,7 +194,7 @@
           <p>
             ¿Quieres poner a
             <strong>{{ pendingDefaultPatient.nombre }} {{ pendingDefaultPatient.apellido }}</strong>
-            como perfil predeterminado?
+            como paciente predeterminado?
           </p>
           <p v-if="defaultPatient">
             <strong>{{ defaultPatient.nombre }} {{ defaultPatient.apellido }}</strong>
@@ -217,17 +222,22 @@
 
         <div class="modal-body">
           <div class="form-row">
-            <label>Archivo TTL del paciente</label>
+            <label>Archivos RDF/ShEx del paciente</label>
             <input
               class="input"
               type="file"
-              accept=".ttl,text/turtle"
+              multiple
+              accept=".ttl,.rdf,.xml,.shex,.zip"
               @change="handleImportFileChange"
             />
           </div>
 
           <p v-if="selectedImportFiles.length" class="helper-text">
-            Archivo seleccionado: {{ selectedImportFiles.map(file => file.name).join(', ') }}
+            Archivos seleccionados: {{ selectedImportFiles.map(file => file.name).join(', ') }}
+          </p>
+
+          <p class="helper-text">
+            Sube entre 1 y 3 RDF con su ShEx, o un ZIP exportado por la aplicacion.
           </p>
 
           <p v-if="importError" class="message message-error">
@@ -253,6 +263,7 @@
 </template>
 
 <script setup>
+import { Plus, Star } from 'lucide-vue-next'
 import { useProfileView } from '@/scripts/views/profileView'
 
 const {

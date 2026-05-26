@@ -1,12 +1,3 @@
-@keyframes hover-scale {
-  from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(1.02);
-  }
-}
-
 .ppv-content,
 .ppv-container {
   min-height: 100%;
@@ -14,10 +5,51 @@
   background: transparent;
 }
 
-.ppv-header {
+.ppv-main-header,
+.ppv-list-header {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 16px;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.ppv-main-header h1,
+.ppv-list-header h1 {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  color: var(--color-text);
+}
+
+.ppv-kicker {
+  margin: 0 0 10px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.ppv-main-copy {
+  margin: 0;
+  max-width: 44rem;
+  color: var(--color-text-soft);
+  line-height: 1.6;
+}
+
+.ppv-counter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 0.95rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--color-text-soft);
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .ppv-actions {
@@ -28,22 +60,25 @@
 .ppv-item-wrapper {
   position: relative;
   display: flex;
-  align-items: center;
-  margin-bottom: 0.75rem;
-  padding-right: 2.5rem;
+  align-items: stretch;
+  gap: 12px;
+  padding-right: 3.4rem;
 }
 
 .ppv-btn {
-  padding: 0.7rem 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 1.2rem;
   background: var(--gradient-primary);
   border: none;
-  border-radius: 0.75rem;
-  cursor: pointer;
-  transition: all 120ms ease;
+  border-radius: 16px;
   font-size: 0.92rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #fff;
-  box-shadow: 0 8px 18px rgba(102, 126, 234, 0.18);
+  box-shadow: 0 16px 28px rgba(15, 118, 110, 0.18);
 }
 
 .ppv-btn:hover {
@@ -53,29 +88,38 @@
 
 .ppv-list {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .ppv-loading,
-.ppv-error {
+.ppv-error,
+.ppv-empty {
   text-align: center;
-  padding: 2rem;
+  padding: 1.8rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px dashed var(--color-border);
   color: var(--color-text-soft);
-  font-style: italic;
 }
 
 .ppv-error {
   color: var(--color-danger);
+  border-color: rgba(180, 35, 24, 0.22);
+  background: var(--color-danger-soft);
 }
 
 .ppv-item {
   width: 100%;
-  padding: 1rem;
+  padding: 1.1rem 1.15rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: hover-scale 150ms ease-in-out;
-  background: var(--color-surface);
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(242, 250, 247, 0.9) 100%);
   box-shadow: var(--shadow-sm);
 }
 
@@ -84,32 +128,42 @@
   right: 0;
   top: 50%;
   transform: translateY(-50%);
-  background: transparent;
-  border: none;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid transparent;
+  border-radius: 14px;
   color: var(--color-text-soft);
-  font-size: 1.5rem;
-  padding: 0.25rem;
   z-index: 2;
+  box-shadow: var(--shadow-sm);
 }
 
 .ppv-delete-btn:hover {
   color: var(--color-danger);
-  background: transparent;
+  border-color: rgba(180, 35, 24, 0.18);
+  background: #fff;
+}
+
+.ppv-delete-btn svg {
+  width: 18px;
+  height: 18px;
 }
 
 .ppv-item:hover {
-  background: var(--color-surface-soft);
-  border-color: rgba(102, 126, 234, 0.35);
-  animation: hover-scale 150ms ease-in-out;
-  box-shadow: 0 14px 26px rgba(102, 126, 234, 0.14);
+  background: linear-gradient(180deg, #ffffff 0%, #f6fcfa 100%);
+  border-color: rgba(15, 118, 110, 0.28);
+  box-shadow: 0 18px 30px rgba(15, 35, 41, 0.1);
   transform: translateY(-1px);
 }
 
 .ppv-item-title {
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 0.5rem;
-  font-size: 1rem;
+  margin-bottom: 0.6rem;
+  font-size: 1.02rem;
 }
 
 .ppv-item-meta {
@@ -117,22 +171,23 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  font-size: 0.875rem;
+  flex-wrap: wrap;
+  font-size: 0.88rem;
   color: var(--color-text-soft);
 }
 
 .ppv-item-code {
   font-family: Consolas, "Courier New", monospace;
-  background: rgba(102, 126, 234, 0.08);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.4rem;
-  font-weight: 600;
-  color: var(--color-primary);
-  border: 1px solid rgba(102, 126, 234, 0.16);
+  background: rgba(15, 118, 110, 0.08);
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  font-weight: 700;
+  color: var(--color-primary-strong);
+  border: 1px solid rgba(15, 118, 110, 0.12);
 }
 
 .ppv-item-date {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-soft);
 }
 
@@ -142,23 +197,21 @@
     padding: 16px;
   }
 
-  .ppv-header {
-    justify-content: stretch;
+  .ppv-main-header,
+  .ppv-list-header {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .ppv-actions {
-    width: 100%;
-  }
-
-  .ppv-actions > .ppv-btn {
-    flex: 1;
+  .ppv-counter {
+    align-self: flex-start;
   }
 
   .ppv-delete-btn {
     position: static;
     transform: none;
-    margin-left: 0.5rem;
-    font-size: 1.25rem;
+    width: 40px;
+    height: 40px;
   }
 
   .ppv-item-wrapper {

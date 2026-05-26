@@ -1,11 +1,18 @@
 <template>
   <div class="menu-sidebar">
     <div class="menu-header">
-      <button class="menu-title" @click="navegarHome">
-        <h2>Personal health</h2>
+      <button class="menu-title" type="button" @click="navegarHome">
+        <span class="menu-brand-mark">
+          <HeartPulse :size="18" />
+        </span>
+        <span class="menu-brand-copy">
+          <span class="menu-brand-eyebrow">Panel clínico</span>
+          <h2>Personal Health</h2>
+        </span>
       </button>
     </div>
     <div class="menu-content">
+      <p class="menu-section-label">Pacientes asociados</p>
       <div class="patient-list">
         <template v-if="pacientes.length > 0">
           <div v-for="paciente in pacientes" :key="paciente.id" class="patient-item">
@@ -13,11 +20,15 @@
               @click="togglePaciente(paciente.id)"
               class="patient-button"
               :class="{ active: pacienteAbierto === paciente.id }"
+              type="button"
             >
               <span class="toggle-icon">
-                {{ pacienteAbierto === paciente.id ? 'â–¼' : 'â–¶' }}
+                <ChevronDown v-if="pacienteAbierto === paciente.id" :size="16" />
+                <ChevronRight v-else :size="16" />
               </span>
-              <span class="patient-icon">ðŸ‘¤</span>
+              <span class="patient-icon">
+                <UserRound :size="18" />
+              </span>
               <span class="patient-name">{{ paciente.nombre }} {{ paciente.apellido }}</span>
             </button>
             <transition name="slideDown">
@@ -25,16 +36,22 @@
                 v-if="pacienteAbierto === paciente.id"
                 class="submenu"
               >
-                <button @click="navegar(paciente.id, '')" class="submenu-item">
-                  <span class="submenu-icon">ðŸ“„</span>
+                <button @click="navegar(paciente.id, '')" class="submenu-item" type="button">
+                  <span class="submenu-icon">
+                    <FileText :size="16" />
+                  </span>
                   Perfil
                 </button>
-                <button @click="navegar(paciente.id, 'procedimientos')" class="submenu-item">
-                  <span class="submenu-icon">ðŸ’‰</span>
+                <button @click="navegar(paciente.id, 'procedimientos')" class="submenu-item" type="button">
+                  <span class="submenu-icon">
+                    <ClipboardList :size="16" />
+                  </span>
                   Procedimientos
                 </button>
-                <button @click="navegar(paciente.id, 'alergias')" class="submenu-item">
-                  <span class="submenu-icon">âš ï¸</span>
+                <button @click="navegar(paciente.id, 'alergias')" class="submenu-item" type="button">
+                  <span class="submenu-icon">
+                    <ShieldAlert :size="16" />
+                  </span>
                   Alergias
                 </button>
               </div>
@@ -51,21 +68,27 @@
         @click="navegarExportar(pacienteAbierto)"
         class="menu-action-btn"
         :disabled="!pacienteAbierto"
+        type="button"
       >
+        <Download :size="16" />
         Exportar
       </button>
       <button
         @click="navegarImportar(pacienteAbierto)"
         class="menu-action-btn"
         :disabled="!pacienteAbierto"
+        type="button"
       >
+        <Upload :size="16" />
         Importar
       </button>
       <button
         @click="cerrarSesion"
         class="menu-action-btn menu-action-btn-logout"
+        type="button"
       >
-        Cerrar sesion
+        <LogOut :size="16" />
+        Cerrar sesión
       </button>
     </div>
     <div class="resize-handle"></div>
@@ -73,6 +96,18 @@
 </template>
 
 <script setup>
+import {
+  ChevronDown,
+  ChevronRight,
+  ClipboardList,
+  Download,
+  FileText,
+  HeartPulse,
+  LogOut,
+  ShieldAlert,
+  Upload,
+  UserRound
+} from 'lucide-vue-next'
 import { useCollapsableMenuView } from '@/scripts/views/collapsableMenuView'
 
 const {

@@ -37,6 +37,8 @@
           </button>
         </div>
 
+        <p v-if="error" class="page-error">{{ error }}</p>
+
         <div class="field">
           <label>Género:</label>
           <template v-if="isEditing">
@@ -176,7 +178,7 @@
 
   <div v-if="showSaveConfirm" class="modal-backdrop">
     <div class="modal-box">
-      <h3>Confirmar edición</h3>
+      <h3>Confirmar cambios</h3>
       <p>¿Quieres guardar los cambios de este perfil?</p>
       <div class="modal-actions">
         <button class="btn save-btn" @click="confirmSave">Sí, guardar</button>

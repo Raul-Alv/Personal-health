@@ -1,7 +1,7 @@
 @import "../shared/list-page.css";
 
 .ppv-layout {
-  max-width: 1180px;
+  max-width: 1200px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -11,14 +11,14 @@
 
 .ppv-main,
 .ppv-sidebar-card {
-  background: var(--color-surface);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(247, 252, 250, 0.9) 100%);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
 }
 
 .ppv-main {
-  padding: 20px;
+  padding: 24px;
 }
 
 .ppv-sidebar {
@@ -27,7 +27,7 @@
 }
 
 .ppv-sidebar-card {
-  padding: 20px;
+  padding: 22px;
 }
 
 .ppv-sidebar-header {
@@ -62,20 +62,20 @@
 }
 
 .ppv-filter-input {
-  min-height: 44px;
-  padding: 10px 12px;
+  min-height: 48px;
+  padding: 0.85rem 1rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-muted);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.88);
   color: var(--color-text);
   font: inherit;
 }
 
 .ppv-filter-input:focus {
   outline: none;
-  border-color: rgba(102, 126, 234, 0.55);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
-  background: var(--color-surface);
+  border-color: rgba(15, 118, 110, 0.48);
+  box-shadow: var(--focus-ring);
+  background: #fff;
 }
 
 .ppv-sidebar-actions {

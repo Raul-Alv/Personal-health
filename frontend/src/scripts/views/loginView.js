@@ -36,7 +36,7 @@ export function useLoginView() {
       }
 
       if (normalizedError === 'user-not-found') {
-        error.value = 'No existe ningún usuario con ese email'
+        error.value = 'No existe ningún usuario con ese correo electrónico'
         return
       }
 
