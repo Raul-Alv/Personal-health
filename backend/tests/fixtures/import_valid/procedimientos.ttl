@@ -16,6 +16,9 @@
     fhir:CodeableConcept.text [ fhir:value "Limpieza dental" ]
   ] ;
   fhir:Procedure.performedDateTime [ fhir:value "2026-05-20T10:30:00"^^xsd:dateTime ] ;
+  fhir:Procedure.note [
+    fhir:Annotation.text [ fhir:value "Nota clinica del procedimiento" ]
+  ] ;
   fhir:Procedure.performer [
     fhir:Procedure.performer.actor [
       fhir:Reference.reference [ fhir:value "Practitioner/dra-lopez" ] ;

@@ -49,6 +49,7 @@ start = @<PatientShape>
   fhir:Procedure.performer          @<PerformerShape> ;
   fhir:Procedure.status             @<ValueStringShape> ;
   fhir:Procedure.subject            @<ReferenceWrapperShape> ;
+  fhir:Procedure.note               @<AnnotationShape>* ;
 }
 
 <CodeableConceptShape> {
@@ -63,6 +64,10 @@ start = @<PatientShape>
 
 <PerformerShape> {
   fhir:Procedure.performer.actor              @<ReferenceWrapperShape> ;
+}
+
+<AnnotationShape> {
+  fhir:Annotation.text              @<ValueStringShape> ;
 }
 
 <ReferenceWrapperShape> {

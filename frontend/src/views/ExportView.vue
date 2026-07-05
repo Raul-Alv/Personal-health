@@ -20,31 +20,7 @@
       </div>
 
       <div v-if="selectedPatient" class="export-section">
-        <h2 class="section-title">Que deseas exportar</h2>
-        <div class="export-options">
-          <button
-            v-if="procedimientos.length"
-            @click="setTipo('procedimientos')"
-            :class="['option-btn', { 'option-btn-active': tipoSeleccionado === 'procedimientos' }]"
-          >
-            Procedimientos disponibles ({{ procedimientos.length }})
-          </button>
-          <button
-            v-if="alergias.length"
-            @click="setTipo('alergias')"
-            :class="[
-              'option-btn',
-              'option-btn-danger',
-              { 'option-btn-active': tipoSeleccionado === 'alergias' }
-            ]"
-          >
-            Alergias registradas ({{ alergias.length }})
-          </button>
-        </div>
-      </div>
-
-      <div v-if="tipoSeleccionado" class="export-section">
-        <h3 class="section-title">{{ tipoSeleccionado }} ({{ itemsMostrados.length }})</h3>
+        <h2 class="section-title">Datos disponibles para exportar</h2>
 
         <div class="selection-box">
           <div class="toggle-row">
@@ -58,44 +34,91 @@
             </label>
           </div>
           <p class="toggle-help">
-            Si esta activado, se anadiran los datos personales del paciente junto con los {{ tipoSeleccionado }} seleccionados.
+            Si esta activado, se anadiran los datos personales del paciente junto con los elementos seleccionados.
           </p>
         </div>
 
-        <div class="selection-actions">
-          <button @click="selectAll" class="selection-btn">Seleccionar todos</button>
-          <button @click="deselectAll" class="selection-btn">Deseleccionar todos</button>
-        </div>
+        <p v-if="!hasExportableItems" class="empty-state">
+          No hay procedimientos ni alergias disponibles para este paciente.
+        </p>
 
-        <ul class="selection-list">
-          <li
-            v-for="(item, index) in itemsMostrados"
-            :key="getItemId(item, index)"
-            class="selection-item"
-          >
-            <input
-              type="checkbox"
-              v-model="seleccionados"
-              :value="getItemId(item, index)"
-              :id="`item-${index}`"
-            />
-            <label :for="`item-${index}`" class="selection-label">
-              {{ item.text || item.display || item.code || `Item ${index + 1}` }}
-            </label>
-          </li>
-        </ul>
+        <template v-else>
+          <div class="selection-actions">
+            <button @click="selectAll" class="selection-btn">Seleccionar todo</button>
+            <button @click="deselectAll" class="selection-btn">Deseleccionar todo</button>
+          </div>
+
+          <div class="selection-groups">
+            <section v-if="procedimientos.length" class="selection-group">
+              <div class="selection-group-header">
+                <h3 class="section-title">Procedimientos ({{ procedimientos.length }})</h3>
+                <div class="selection-group-actions">
+                  <button @click="selectAllProcedimientos" class="selection-link-btn">Todos</button>
+                  <button @click="deselectAllProcedimientos" class="selection-link-btn">Ninguno</button>
+                </div>
+              </div>
+
+              <ul class="selection-list">
+                <li
+                  v-for="(item, index) in procedimientos"
+                  :key="getProcedureId(item, index)"
+                  class="selection-item"
+                >
+                  <input
+                    type="checkbox"
+                    v-model="procedimientosSeleccionados"
+                    :value="getProcedureId(item, index)"
+                    :id="`procedure-${index}`"
+                  />
+                  <label :for="`procedure-${index}`" class="selection-label">
+                    {{ formatProcedureLabel(item, index) }}
+                  </label>
+                </li>
+              </ul>
+            </section>
+
+            <section v-if="alergias.length" class="selection-group">
+              <div class="selection-group-header">
+                <h3 class="section-title">Alergias ({{ alergias.length }})</h3>
+                <div class="selection-group-actions">
+                  <button @click="selectAllAlergias" class="selection-link-btn">Todas</button>
+                  <button @click="deselectAllAlergias" class="selection-link-btn">Ninguna</button>
+                </div>
+              </div>
+
+              <ul class="selection-list">
+                <li
+                  v-for="(item, index) in alergias"
+                  :key="getAllergyId(item, index)"
+                  class="selection-item"
+                >
+                  <input
+                    type="checkbox"
+                    v-model="alergiasSeleccionadas"
+                    :value="getAllergyId(item, index)"
+                    :id="`allergy-${index}`"
+                  />
+                  <label :for="`allergy-${index}`" class="selection-label">
+                    {{ formatAllergyLabel(item, index) }}
+                  </label>
+                </li>
+              </ul>
+            </section>
+          </div>
+        </template>
 
         <div class="summary">
-          <p class="selection-count">Elementos seleccionados: {{ seleccionados.length }}</p>
+          <p class="selection-count">Elementos seleccionados: {{ totalSeleccionados }}</p>
+          <p>Procedimientos: {{ procedimientosSeleccionados.length }} | Alergias: {{ alergiasSeleccionadas.length }}</p>
           <p>Datos del paciente: {{ incluirPaciente ? 'incluidos' : 'no incluidos' }}</p>
         </div>
 
         <button
           @click="exportarSeleccionados"
-          :disabled="seleccionados.length === 0"
+          :disabled="totalSeleccionados === 0"
           class="export-btn"
         >
-          Exportar seleccion ({{ seleccionados.length }})
+          Exportar seleccion ({{ totalSeleccionados }})
         </button>
       </div>
     </div>
@@ -110,13 +133,20 @@ const {
   selectedPatient,
   procedimientos,
   alergias,
-  tipoSeleccionado,
-  seleccionados,
+  procedimientosSeleccionados,
+  alergiasSeleccionadas,
   incluirPaciente,
-  itemsMostrados,
-  getItemId,
+  totalSeleccionados,
+  hasExportableItems,
+  getProcedureId,
+  getAllergyId,
+  formatProcedureLabel,
+  formatAllergyLabel,
   loadPatientData,
-  setTipo,
+  selectAllProcedimientos,
+  deselectAllProcedimientos,
+  selectAllAlergias,
+  deselectAllAlergias,
   selectAll,
   deselectAll,
   exportarSeleccionados

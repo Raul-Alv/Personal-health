@@ -1,6 +1,6 @@
 from rdflib import BNode, Graph
 
-from rdf_store import get_patient_graph, get_store
+from rdf_store import get_patient_graph
 from rdf_util import copy_subgraph
 from sparql import queries
 
@@ -36,8 +36,8 @@ class PatientRepo:
         g_patient.commit()
 
     def get_details(self, patient_uri: str) -> list[dict]:
-        store = get_store()
-        rows = store.query(queries.PATIENT_GET_ALL_DATA.format(patient_uri=patient_uri))
+        g_patient = get_patient_graph()
+        rows = g_patient.query(queries.PATIENT_GET_ALL_DATA.format(patient_uri=patient_uri))
         out = []
         for row in rows:
             out.append(

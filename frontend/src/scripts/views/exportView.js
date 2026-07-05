@@ -40,19 +40,43 @@ export function useExportView() {
   const selectedPatient = ref('')
   const procedimientos = ref([])
   const alergias = ref([])
-  const tipoSeleccionado = ref('')
-  const seleccionados = ref([])
+  const procedimientosSeleccionados = ref([])
+  const alergiasSeleccionadas = ref([])
   const incluirPaciente = ref(true)
 
-  const itemsMostrados = computed(() => {
-    return tipoSeleccionado.value === 'procedimientos' ? procedimientos.value : alergias.value
+  const totalSeleccionados = computed(() => {
+    return procedimientosSeleccionados.value.length + alergiasSeleccionadas.value.length
   })
 
-  const getItemId = (item, index) => {
+  const hasExportableItems = computed(() => procedimientos.value.length > 0 || alergias.value.length > 0)
+
+  const getProcedureId = (item, index) => {
     if (item.procedure_uri) return item.procedure_uri.split('/').pop()
+    if (item.id) return item.id
+    return `procedimiento-${index}`
+  }
+
+  const getAllergyId = (item, index) => {
     if (item.alergia_uri) return item.alergia_uri.split('/').pop()
     if (item.id) return item.id
-    return `${tipoSeleccionado.value}-${index}`
+    return `alergia-${index}`
+  }
+
+  const formatProcedureLabel = (item, index) => {
+    const name = item.text || item.display || item.code || `Procedimiento ${index + 1}`
+    const details = [item.code, item.performedDateTime].filter(Boolean).join(' - ')
+    return details && details !== name ? `${name} (${details})` : name
+  }
+
+  const formatAllergyLabel = (item, index) => {
+    const name = item.display || item.text || item.code || `Alergia ${index + 1}`
+    const details = [item.code, item.onsetDateTime].filter(Boolean).join(' - ')
+    return details && details !== name ? `${name} (${details})` : name
+  }
+
+  const clearSelections = () => {
+    procedimientosSeleccionados.value = []
+    alergiasSeleccionadas.value = []
   }
 
   const loadPatients = async () => {
@@ -69,6 +93,7 @@ export function useExportView() {
     if (!selectedPatient.value) return
 
     try {
+      clearSelections()
       const resProc = await api.get(`/mis_pacientes/${selectedPatient.value}/get/procedimientos`)
       procedimientos.value = resProc.data
 
@@ -82,38 +107,40 @@ export function useExportView() {
 
   const applyInitialSelection = async () => {
     const initialPatientId = typeof route.query.patientId === 'string' ? route.query.patientId : ''
-    const initialType = typeof route.query.tipo === 'string' ? route.query.tipo : ''
 
     if (!initialPatientId) return
 
     selectedPatient.value = initialPatientId
     await loadPatientData()
-
-    if (initialType === 'procedimientos' && procedimientos.value.length) {
-      setTipo('procedimientos')
-      return
-    }
-
-    if (initialType === 'alergias' && alergias.value.length) {
-      setTipo('alergias')
-    }
   }
 
-  const setTipo = (tipo) => {
-    tipoSeleccionado.value = tipo
-    seleccionados.value = []
+  const selectAllProcedimientos = () => {
+    procedimientosSeleccionados.value = procedimientos.value.map((item, index) => getProcedureId(item, index))
+  }
+
+  const deselectAllProcedimientos = () => {
+    procedimientosSeleccionados.value = []
+  }
+
+  const selectAllAlergias = () => {
+    alergiasSeleccionadas.value = alergias.value.map((item, index) => getAllergyId(item, index))
+  }
+
+  const deselectAllAlergias = () => {
+    alergiasSeleccionadas.value = []
   }
 
   const selectAll = () => {
-    seleccionados.value = itemsMostrados.value.map((item, index) => getItemId(item, index))
+    selectAllProcedimientos()
+    selectAllAlergias()
   }
 
   const deselectAll = () => {
-    seleccionados.value = []
+    clearSelections()
   }
 
   const exportarSeleccionados = async () => {
-    if (!seleccionados.value.length) {
+    if (!totalSeleccionados.value) {
       alert('Debes seleccionar al menos un elemento.')
       return
     }
@@ -121,8 +148,8 @@ export function useExportView() {
     try {
       const formData = new FormData()
       formData.append('patient_id', selectedPatient.value)
-      formData.append('tipo', tipoSeleccionado.value)
-      formData.append('ids', seleccionados.value.join(','))
+      formData.append('procedure_ids', procedimientosSeleccionados.value.join(','))
+      formData.append('allergy_ids', alergiasSeleccionadas.value.join(','))
       formData.append('incluir_paciente', incluirPaciente.value.toString())
 
       const response = await api.post('/export_seleccionados', formData, {
@@ -133,7 +160,7 @@ export function useExportView() {
       })
 
       const contentDisposition = response.headers['content-disposition']
-      let filename = `export_${tipoSeleccionado.value}_${selectedPatient.value}.zip`
+      let filename = `export_seleccion_${selectedPatient.value}.zip`
 
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="(.+)"/)
@@ -152,7 +179,7 @@ export function useExportView() {
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
 
-      seleccionados.value = []
+      clearSelections()
       alert(`Exportacion completada: ${filename}`)
     } catch (error) {
       console.error('Error en la exportacion:', error)
@@ -170,13 +197,20 @@ export function useExportView() {
     selectedPatient,
     procedimientos,
     alergias,
-    tipoSeleccionado,
-    seleccionados,
+    procedimientosSeleccionados,
+    alergiasSeleccionadas,
     incluirPaciente,
-    itemsMostrados,
-    getItemId,
+    totalSeleccionados,
+    hasExportableItems,
+    getProcedureId,
+    getAllergyId,
+    formatProcedureLabel,
+    formatAllergyLabel,
     loadPatientData,
-    setTipo,
+    selectAllProcedimientos,
+    deselectAllProcedimientos,
+    selectAllAlergias,
+    deselectAllAlergias,
     selectAll,
     deselectAll,
     exportarSeleccionados

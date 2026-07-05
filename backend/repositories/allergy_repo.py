@@ -1,13 +1,13 @@
 from rdflib import URIRef
 
-from rdf_store import get_allergy_graph, get_store
+from rdf_store import get_allergy_graph
 from sparql import queries
 
 
 class AllergyRepo:
     def list_by_patient(self, patient_id: str) -> list[dict]:
-        store = get_store()
-        rows = store.query(queries.ALLERGY_GET_LIST_DETAILS.format(patient_id=patient_id))
+        graph = get_allergy_graph()
+        rows = graph.query(queries.ALLERGY_GET_LIST_DETAILS.format(patient_id=patient_id))
         out: list[dict] = []
         for row in rows:
             out.append(

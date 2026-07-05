@@ -29,6 +29,10 @@
                   <span class="ppv-item-code">{{ proc.code || '-' }}</span>
                   <span class="ppv-item-date">{{ proc.performedDateTime || '-' }}</span>
                 </div>
+                <div v-if="proc.notes" class="ppv-item-notes">
+                  <span class="ppv-item-notes-label">Notas</span>
+                  <span>{{ proc.notes }}</span>
+                </div>
               </div>
               <button
                 class="ppv-delete-btn"
