@@ -27,7 +27,18 @@ class FhirPackageLowLevelBehaviorTests(ReadableTestCase):
             self.service._normalize_patient_reference("http://hl7.org/fhir/Patient/pac-1"),
             "http://hl7.org/fhir/Patient/pac-1",
         )
+        self.assertEqual(
+            self.service._normalize_patient_reference("pac-1"),
+            "http://hl7.org/fhir/Patient/pac-1",
+        )
         self.assertIsNone(self.service._normalize_patient_reference("Observation/obs-1"))
+
+    def test_default_export_schema_accepts_procedure_notes(self):
+        """Schema por defecto: incluye las notas de Procedure en exportacion/importacion."""
+        schema = self.service.load_default_schema()
+
+        self.assertIn("fhir:Procedure.note @<AnnotationShape>*", schema)
+        self.assertIn("fhir:Annotation.text @<StringLikeShape>", schema)
 
     def test_validate_patient_references_accepts_matching_patient_references(self):
         """Referencias validas: acepta procedimientos enlazados a un Patient incluido."""

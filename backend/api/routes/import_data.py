@@ -28,7 +28,7 @@ async def preview_import(files: list[UploadFile] = File(...), user_uri: str = De
     for file in files:
         payload.append((file.filename or "archivo.ttl", await file.read()))
     try:
-        return ImportService().preview_files(payload)
+        return ImportService().preview_files(payload, user_uri=user_uri)
     except SchemaValidationError as exc:
         raise HTTPException(status_code=400, detail=exc.to_detail()) from exc
 

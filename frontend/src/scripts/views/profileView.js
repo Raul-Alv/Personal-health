@@ -221,7 +221,10 @@ export function useProfileView() {
 
       await fetchPatients()
       closeImportModal(true)
-      success.value = 'Paciente importado correctamente.'
+      const warnings = Array.isArray(data?.warnings) ? data.warnings : []
+      success.value = warnings.length
+        ? `Paciente importado correctamente. ${warnings.join(' ')}`
+        : 'Paciente importado correctamente.'
 
       if (data?.redirect) {
         const frontendRedirect = data.redirect.replace('/paciente/', '/patient/')

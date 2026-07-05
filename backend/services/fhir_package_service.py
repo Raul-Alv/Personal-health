@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import re
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,6 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_SCHEMA_PATH = BASE_DIR / "schemas" / "fhir_r4_clinical.shex"
 SUPPORTED_RDF_SUFFIXES = {".ttl", ".rdf", ".xml"}
 SUPPORTED_ARCHIVE_SUFFIXES = {".zip"}
+FHIR_ID_RE = re.compile(r"^[A-Za-z0-9\-.]{1,64}$")
 
 
 class SchemaValidationError(Exception):
@@ -76,7 +78,13 @@ class FhirPackageService:
             schema_str=schema_str,
         )
 
-    def validate_graph(self, graph: Graph, schema_str: str) -> list[dict]:
+    def validate_graph(
+        self,
+        graph: Graph,
+        schema_str: str,
+        validate_patient_references: bool = True,
+        allowed_external_patient_uris: set[str] | None = None,
+    ) -> list[dict]:
         evaluator = ShExEvaluator(rdf=graph, schema=schema_str)
         errors: list[dict] = []
         validated_resources = 0
@@ -119,11 +127,29 @@ class FhirPackageService:
                 }
             )
 
-        errors.extend(self._validate_patient_references(graph))
+        if validate_patient_references:
+            errors.extend(
+                self._validate_patient_references(
+                    graph,
+                    allowed_external_patient_uris=allowed_external_patient_uris,
+                )
+            )
         return errors
 
-    def assert_valid_graph(self, graph: Graph, schema_str: str, message: str) -> None:
-        errors = self.validate_graph(graph=graph, schema_str=schema_str)
+    def assert_valid_graph(
+        self,
+        graph: Graph,
+        schema_str: str,
+        message: str,
+        validate_patient_references: bool = True,
+        allowed_external_patient_uris: set[str] | None = None,
+    ) -> None:
+        errors = self.validate_graph(
+            graph=graph,
+            schema_str=schema_str,
+            validate_patient_references=validate_patient_references,
+            allowed_external_patient_uris=allowed_external_patient_uris,
+        )
         if errors:
             raise SchemaValidationError(message, errors=errors)
 
@@ -151,12 +177,13 @@ class FhirPackageService:
             if len(resource_graph) > 0
         }
 
-    def build_export_zip(self, graph: Graph, base_filename: str) -> bytes:
+    def build_export_zip(self, graph: Graph, base_filename: str, validate_patient_references: bool = True) -> bytes:
         schema_str = self.load_default_schema()
         self.assert_valid_graph(
             graph=graph,
             schema_str=schema_str,
             message="Los datos exportados no cumplen el perfil RDF/ShEx FHIR configurado para la aplicación.",
+            validate_patient_references=validate_patient_references,
         )
 
         resource_graphs = self.split_graph_by_resource_type(graph)
@@ -242,8 +269,30 @@ class FhirPackageService:
 
         raise SchemaValidationError(f"No se ha podido decodificar el archivo '{filename}' como texto.")
 
-    def _validate_patient_references(self, graph: Graph) -> list[dict]:
-        patient_uris = {str(subject) for subject in graph.subjects(RDF.type, FHIR.Patient)}
+    def collect_patient_reference_uris(self, graph: Graph) -> set[str]:
+        patient_uris: set[str] = set()
+        resources_with_patient_ref = (
+            (FHIR.Procedure, FHIR["Procedure.subject"]),
+            (FHIR.AllergyIntolerance, FHIR["AllergyIntolerance.patient"]),
+        )
+
+        for resource_type, predicate in resources_with_patient_ref:
+            for subject in graph.subjects(RDF.type, resource_type):
+                for reference_value in self._extract_reference_values(graph, subject, predicate):
+                    normalized_reference = self._normalize_patient_reference(reference_value)
+                    if normalized_reference is not None:
+                        patient_uris.add(normalized_reference)
+        return patient_uris
+
+    def _validate_patient_references(
+        self,
+        graph: Graph,
+        allowed_external_patient_uris: set[str] | None = None,
+    ) -> list[dict]:
+        package_patient_uris = {str(subject) for subject in graph.subjects(RDF.type, FHIR.Patient)}
+        account_patient_uris = allowed_external_patient_uris or set()
+        accepted_patient_uris = package_patient_uris | account_patient_uris
+        validate_against_account = allowed_external_patient_uris is not None
         errors: list[dict] = []
 
         resources_with_patient_ref = (
@@ -253,7 +302,8 @@ class FhirPackageService:
 
         for resource_type, predicate, shape_name in resources_with_patient_ref:
             for subject in graph.subjects(RDF.type, resource_type):
-                for reference_value in self._extract_reference_values(graph, subject, predicate):
+                reference_values = self._extract_reference_values(graph, subject, predicate)
+                for reference_value in reference_values:
                     normalized_reference = self._normalize_patient_reference(reference_value)
                     if normalized_reference is None:
                         errors.append(
@@ -265,21 +315,34 @@ class FhirPackageService:
                         )
                         continue
 
-                    if patient_uris and normalized_reference not in patient_uris:
+                    if accepted_patient_uris and normalized_reference not in accepted_patient_uris:
+                        reason = (
+                            f"La referencia '{reference_value}' no apunta a ningun Patient incluido en el paquete RDF."
+                        )
+                        if validate_against_account:
+                            reason = (
+                                f"La referencia '{reference_value}' no apunta a ningun Patient incluido en el "
+                                "paquete RDF ni a un paciente vinculado a tu cuenta."
+                            )
                         errors.append(
                             {
                                 "focus": str(subject),
                                 "shape": shape_name,
-                                "reason": f"La referencia '{reference_value}' no apunta a ningún Patient incluido en el paquete RDF.",
+                                "reason": reason,
                             }
                         )
 
-                if not patient_uris:
+                if not accepted_patient_uris and reference_values:
+                    reason = "Hay recursos clinicos con referencia a paciente, pero el paquete no incluye ningun recurso Patient."
+                    if validate_against_account:
+                        reason = (
+                            f"La referencia '{reference_value}' no corresponde a ningun paciente vinculado a tu cuenta."
+                        )
                     errors.append(
                         {
                             "focus": str(subject),
                             "shape": shape_name,
-                            "reason": "Hay recursos clínicos con referencia a paciente, pero el paquete no incluye ningún recurso Patient.",
+                            "reason": reason,
                         }
                     )
                     break
@@ -306,4 +369,6 @@ class FhirPackageService:
             return value
         if value.startswith("Patient/"):
             return f"http://hl7.org/fhir/{value}"
+        if FHIR_ID_RE.fullmatch(value):
+            return f"http://hl7.org/fhir/Patient/{value}"
         return None

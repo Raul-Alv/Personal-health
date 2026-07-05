@@ -46,7 +46,7 @@
 
           <div class="field-card">
             <span class="label">Estado</span>
-            <div class="detail-value">{{ procedures[0]?.status || '-' }}</div>
+            <div class="detail-value">{{ procedureStatusLabel }}</div>
           </div>
 
           <div class="field-card">
@@ -132,7 +132,7 @@ const props = defineProps({
   }
 })
 
-const { icono, procedures, activeTeeth, hasDentalData, confirmDelete, onExport, onDelete, goBack } =
+const { icono, procedures, activeTeeth, hasDentalData, procedureStatusLabel, confirmDelete, onExport, onDelete, goBack } =
   useProcedureDetailView(props)
 </script>
 

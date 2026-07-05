@@ -76,16 +76,11 @@ start = @<PatientShape>
   fhir:Procedure.code @<CodeableConceptShape>? ;
   fhir:Procedure.performedDateTime @<DateLikeShape>? ;
   fhir:Procedure.performer @<ProcedurePerformerShape>* ;
-  fhir:Procedure.bodySite @<CodeableConceptShape>* ;
-  fhir:Procedure.note @<AnnotationShape>*
+  fhir:Procedure.bodySite @<CodeableConceptShape>*
 }
 
 <ProcedurePerformerShape> {
   fhir:Procedure.performer.actor @<ReferenceShape>
-}
-
-<AnnotationShape> {
-  fhir:Annotation.text @<StringLikeShape>
 }
 
 <ProcedureStatusShape> {

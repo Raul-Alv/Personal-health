@@ -134,7 +134,6 @@ PATIENT_GET_ALL_DATA = dedent("""
         ?nombre ?apellidos ?genero ?fechaNacimiento
         (COALESCE(?estado_civil_simple, ?estado_civil_codigo) AS ?estado_civil)
         ?telefono ?ss ?calle ?cp ?ciudad ?provincia ?pais
-    FROM <urn:app_salud:pacientes>
     WHERE {{
         <{patient_uri}> fhir:Patient.name / fhir:HumanName.given / fhir:value ?nombre ;
                        fhir:Patient.name / fhir:HumanName.family / fhir:value ?apellidos ;
@@ -160,7 +159,6 @@ PATIENT_GET_ALL_DATA = dedent("""
 PROCEDURE_LIST_QUERY_TEMPLATE = dedent("""
     PREFIX fhir: <http://hl7.org/fhir/>
     SELECT DISTINCT ?proc ?code ?text ?status ?performedDateTime ?performerRef
-    FROM <urn:app_salud:procedimientos>
     WHERE {{
         ?proc a fhir:Procedure ;
               fhir:Procedure.subject / fhir:Reference.reference / fhir:value "Patient/{patient_id}" .
@@ -230,7 +228,6 @@ def build_procedure_list_query(
 PROCEDURE_GET_DETAILS = dedent("""
     PREFIX fhir: <http://hl7.org/fhir/>
     SELECT ?code ?text ?status ?performedDateTime ?performerRef ?dienteCode ?dienteDisplay
-    FROM <urn:app_salud:procedimientos>
     WHERE {{
         <{procedure_uri}> a fhir:Procedure .
         OPTIONAL {{ <{procedure_uri}> fhir:Procedure.code / fhir:CodeableConcept.coding / fhir:Coding.code / fhir:value ?code . }}
@@ -263,7 +260,6 @@ PROCEDURE_GET_BY_PATIENT = dedent("""
 ALLERGY_GET_LIST_DETAILS = dedent("""
     PREFIX fhir: <http://hl7.org/fhir/>
     SELECT ?alergia ?display ?code ?status ?onsetDateTime ?performerRef ?category
-    FROM <urn:app_salud:alergias>
     WHERE {{
         ?alergia a fhir:AllergyIntolerance ;
                  fhir:AllergyIntolerance.patient / fhir:Reference.reference / fhir:value "Patient/{patient_id}" .

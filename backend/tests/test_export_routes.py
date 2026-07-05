@@ -31,7 +31,7 @@ class PlaceholderExportService:
 fake_export_service_module.ExportService = PlaceholderExportService
 sys.modules["services.export_service"] = fake_export_service_module
 
-from api.deps import require_patient_access
+from api.deps import require_form_patient_access, require_patient_access
 from api.routes.exports import router
 from services.fhir_package_service import SchemaValidationError
 
@@ -40,6 +40,10 @@ def build_client() -> TestClient:
     app = FastAPI()
     app.include_router(router, prefix="/api")
     app.dependency_overrides[require_patient_access] = lambda: (
+        "http://example.org/fhir/custom#Usuario/test",
+        "http://hl7.org/fhir/Patient/pac-1",
+    )
+    app.dependency_overrides[require_form_patient_access] = lambda: (
         "http://example.org/fhir/custom#Usuario/test",
         "http://hl7.org/fhir/Patient/pac-1",
     )
@@ -81,6 +85,39 @@ class ExportRouteHttpBehaviorTests(ReadableTestCase):
             tipo="procedimientos",
             ids=["proc-1", "proc-2"],
             incluir_paciente=False,
+        )
+
+    @patch("api.routes.exports.ExportService")
+    def test_export_selected_accepts_procedures_and_allergies_in_one_request(self, export_service_cls):
+        """Exportacion mixta: permite procedimientos y alergias en el mismo ZIP."""
+        export_service = export_service_cls.return_value
+        export_service.export_mixed_zip.return_value = (
+            b"zip-content",
+            "export_seleccion_pac-1_con_paciente.zip",
+        )
+        client = build_client()
+
+        response = client.post(
+            "/api/export_seleccionados",
+            data={
+                "patient_id": "pac-1",
+                "procedure_ids": " proc-1,proc-2 ",
+                "allergy_ids": " al-1, ,al-2 ",
+                "incluir_paciente": "true",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b"zip-content")
+        self.assertIn(
+            "attachment; filename=export_seleccion_pac-1_con_paciente.zip",
+            response.headers["content-disposition"],
+        )
+        export_service.export_mixed_zip.assert_called_once_with(
+            patient_id="pac-1",
+            procedure_ids=["proc-1", "proc-2"],
+            allergy_ids=["al-1", "al-2"],
+            incluir_paciente=True,
         )
 
     @patch("api.routes.exports.ExportService")

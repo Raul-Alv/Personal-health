@@ -1,4 +1,4 @@
-PREFIX fhir: <http://h7.org/fhir>
+PREFIX fhir: <http://hl7.org/fhir/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 start = @<ProcedureShape>
@@ -10,7 +10,8 @@ start = @<ProcedureShape>
     fhir:Procedure.code @<CodeableConceptShape>;
     fhir:Procedure.subject @<ReferenceShape>;
     fhir:Procedure.performedDateTime [ fhir:value xsd:date ];
-    fhir:Procedure.performer @<PerformerShape>
+    fhir:Procedure.performer @<PerformerShape>;
+    fhir:Procedure.note @<AnnotationShape>*
 }
 
 <IdentifierShape> {
@@ -37,4 +38,8 @@ start = @<ProcedureShape>
 <PerformerShape> {
     fhir:index xsd:integer ;
     fhir:Procedure.performer.actor @<ReferenceShape>
+}
+
+<AnnotationShape> {
+    fhir:Annotation.text [ fhir:value xsd:string ]
 }

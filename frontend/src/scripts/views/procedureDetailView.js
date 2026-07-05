@@ -2,6 +2,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import dentalSvgMarkup from '@/assets/Human_dental_arches.svg?raw'
 import api from '@/api/axios'
+import { formatProcedureStatus } from '@/scripts/shared/fhirDisplay'
 
 export { dentalSvgMarkup }
 
@@ -21,6 +22,7 @@ export function useProcedureDetailView(props) {
   })
 
   const hasDentalData = computed(() => activeTeeth.value.length > 0)
+  const procedureStatusLabel = computed(() => formatProcedureStatus(procedures.value[0]?.status) || '-')
 
   const getSvgRoot = () => icono.value?.querySelector('svg') ?? null
 
@@ -90,6 +92,7 @@ export function useProcedureDetailView(props) {
     procedures,
     activeTeeth,
     hasDentalData,
+    procedureStatusLabel,
     confirmDelete,
     onExport,
     onDelete,

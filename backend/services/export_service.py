@@ -17,6 +17,29 @@ class ExportService:
         return self.package_service.build_export_zip(graph=export_graph, base_filename=f"export_{patient_id}")
 
     def export_selected_zip(self, patient_id: str, tipo: str, ids: list[str], incluir_paciente: bool) -> tuple[bytes, str]:
+        if tipo == "procedimientos":
+            return self.export_mixed_zip(
+                patient_id=patient_id,
+                procedure_ids=ids,
+                allergy_ids=[],
+                incluir_paciente=incluir_paciente,
+            )
+        if tipo == "alergias":
+            return self.export_mixed_zip(
+                patient_id=patient_id,
+                procedure_ids=[],
+                allergy_ids=ids,
+                incluir_paciente=incluir_paciente,
+            )
+        raise ValueError("Tipo no valido (usa 'procedimientos' o 'alergias').")
+
+    def export_mixed_zip(
+        self,
+        patient_id: str,
+        procedure_ids: list[str],
+        allergy_ids: list[str],
+        incluir_paciente: bool,
+    ) -> tuple[bytes, str]:
         g_patient = get_patient_graph()
         g_procedure = get_procedure_graph()
         g_allergy = get_allergy_graph()
@@ -28,30 +51,39 @@ class ExportService:
         if incluir_paciente and (patient_uri, None, None) in g_patient:
             copy_subgraph(patient_uri, g_patient, export_graph)
 
-        if tipo == "procedimientos":
-            for item_id in ids:
-                proc_uri = URIRef(f"http://hl7.org/fhir/Procedure/{item_id}")
-                if (proc_uri, None, None) in g_procedure:
-                    copy_subgraph(proc_uri, g_procedure, export_graph)
-                    exported_items += 1
-        elif tipo == "alergias":
-            for item_id in ids:
-                allergy_uri = URIRef(f"http://hl7.org/fhir/AllergyIntolerance/{item_id}")
-                if (allergy_uri, None, None) in g_allergy:
-                    copy_subgraph(allergy_uri, g_allergy, export_graph)
-                    exported_items += 1
-        else:
-            raise ValueError("Tipo no valido (usa 'procedimientos' o 'alergias').")
+        exported_procedures = 0
+        for item_id in procedure_ids:
+            proc_uri = URIRef(f"http://hl7.org/fhir/Procedure/{item_id}")
+            if (proc_uri, None, None) in g_procedure:
+                copy_subgraph(proc_uri, g_procedure, export_graph)
+                exported_items += 1
+                exported_procedures += 1
+
+        exported_allergies = 0
+        for item_id in allergy_ids:
+            allergy_uri = URIRef(f"http://hl7.org/fhir/AllergyIntolerance/{item_id}")
+            if (allergy_uri, None, None) in g_allergy:
+                copy_subgraph(allergy_uri, g_allergy, export_graph)
+                exported_items += 1
+                exported_allergies += 1
 
         if exported_items == 0:
             raise ValueError("No se encontraron elementos para exportar.")
 
         export_graph.namespace_manager.bind("fhir", FHIR, override=True)
+        if exported_procedures and exported_allergies:
+            export_type = "seleccion"
+        elif exported_procedures:
+            export_type = "procedimientos"
+        else:
+            export_type = "alergias"
+
         suffix = "_con_paciente" if incluir_paciente else "_solo_items"
-        filename = f"export_{tipo}_{patient_id}{suffix}.zip"
+        filename = f"export_{export_type}_{patient_id}{suffix}.zip"
         content = self.package_service.build_export_zip(
             graph=export_graph,
-            base_filename=f"export_{tipo}_{patient_id}{suffix}",
+            base_filename=f"export_{export_type}_{patient_id}{suffix}",
+            validate_patient_references=incluir_paciente,
         )
         return content, filename
 

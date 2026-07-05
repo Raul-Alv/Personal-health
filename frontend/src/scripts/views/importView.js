@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api/axios'
+import { formatPreviewValue } from '@/scripts/shared/fhirDisplay'
 
 const prefixMap = {
   'http://hl7.org/fhir/': 'fhir:',
@@ -28,6 +29,7 @@ const etiquetas = {
   'fhir:AllergyIntolerance.actor__fhir:Reference.reference__fhir:value': 'Profesional',
   'fhir:AllergyIntolerance.recorder__fhir:Reference.reference__fhir:value': 'Profesional',
   'fhir:AllergyIntolerance.asserter__fhir:Reference.reference__fhir:value': 'Profesional',
+  'fhir:AllergyIntolerance.clinicalStatus__fhir:CodeableConcept.coding__fhir:Coding.code__fhir:value': 'Estado clinico',
   'fhir:AllergyIntolerance.category__fhir:value': 'Categoria',
   'fhir:Procedure.code__fhir:CodeableConcept.coding__fhir:Coding.display__fhir:value': 'Procedimiento',
   'fhir:Procedure.code__fhir:CodeableConcept.coding__fhir:Coding.code__fhir:value': 'Codigo procedimiento',
@@ -35,11 +37,23 @@ const etiquetas = {
   'fhir:Procedure.performedDateTime__fhir:value': 'Fecha del procedimiento',
   'fhir:Procedure.subject__fhir:Reference.reference__fhir:value': 'Paciente',
   'fhir:Procedure.performer__fhir:Procedure.performer.actor__fhir:Reference.reference__fhir:value': 'Profesional',
+  'fhir:Procedure.note__fhir:Annotation.text__fhir:value': 'Notas',
   'fhir:AllergyIntolerance.verificationStatus__fhir:CodeableConcept.coding__fhir:Coding.code__fhir:value': 'Estado de verificacion',
   'fhir:AllergyIntolerance.criticality__fhir:value': 'Criticidad',
   'fhir:AllergyIntolerance.note__fhir:Annotation.text__fhir:value': 'Notas',
+  'fhir:Procedure.status': 'Estado del procedimiento',
   'fhir:Procedure.status__fhir:value': 'Estado del procedimiento'
 }
+
+const etiquetaPatterns = [
+  { pattern: 'fhir:Patient.gender', etiqueta: 'Genero' },
+  { pattern: 'fhir:Patient.maritalStatus', etiqueta: 'Estado civil' },
+  { pattern: 'fhir:Procedure.status', etiqueta: 'Estado del procedimiento' },
+  { pattern: 'fhir:AllergyIntolerance.clinicalStatus', etiqueta: 'Estado clinico' },
+  { pattern: 'fhir:AllergyIntolerance.verificationStatus', etiqueta: 'Estado de verificacion' },
+  { pattern: 'fhir:AllergyIntolerance.category', etiqueta: 'Categoria' },
+  { pattern: 'fhir:AllergyIntolerance.criticality', etiqueta: 'Criticidad' }
+]
 
 function abreviarClave(clave) {
   if (!clave || typeof clave !== 'string') return ''
@@ -50,6 +64,13 @@ function abreviarClave(clave) {
   }
 
   return abreviada
+}
+
+function obtenerEtiqueta(claveAbreviada) {
+  return (
+    etiquetas[claveAbreviada] ||
+    etiquetaPatterns.find(({ pattern }) => claveAbreviada.includes(pattern))?.etiqueta
+  )
 }
 
 function formatValidationError(errorItem) {
@@ -80,11 +101,14 @@ export function useImportView() {
 
   const filtrarDatos = (datos) => {
     return Object.entries(datos)
-      .filter(([clave]) => etiquetas[abreviarClave(clave)])
-      .map(([clave, valor]) => ({
-        etiqueta: etiquetas[abreviarClave(clave)],
-        valor
-      }))
+      .filter(([clave]) => obtenerEtiqueta(abreviarClave(clave)))
+      .map(([clave, valor]) => {
+        const claveAbreviada = abreviarClave(clave)
+        return {
+          etiqueta: obtenerEtiqueta(claveAbreviada),
+          valor: formatPreviewValue(claveAbreviada, valor)
+        }
+      })
   }
 
   const onFileChange = (event) => {
@@ -126,7 +150,11 @@ export function useImportView() {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
 
-      router.push(data.redirect)
+      if (Array.isArray(data.warnings) && data.warnings.length) {
+        alert(data.warnings.join('\n'))
+      }
+
+      router.push(data.redirect.replace('/paciente/', '/patient/'))
     } catch (error) {
       console.error('Error al confirmar la importacion:', error)
       alert(extractImportErrorMessage(error, 'La importacion no se pudo completar.'))
