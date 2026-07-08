@@ -22,11 +22,11 @@
       <section class="procedure-data-panel">
         <div class="panel-header">
           <h1 class="detail-title">
-            Procedimiento <span v-if="procedure_id">#{{ procedure_id }}</span>
+            Intervención <span v-if="procedure_id">#{{ procedure_id }}</span>
           </h1>
 
           <div class="panel-actions">
-            <button class="icon-btn" @click="confirmDelete = true" title="Eliminar procedimiento" type="button">
+            <button class="icon-btn" @click="confirmDelete = true" title="Eliminar intervención" type="button">
               <Trash2 :size="16" />
               Eliminar
             </button>
@@ -35,7 +35,7 @@
 
         <div class="field-grid">
           <div class="field-card">
-            <span class="label">Procedimiento</span>
+            <span class="label">Intervención</span>
             <div class="detail-value">{{ procedures[0]?.description || procedures[0]?.text || '-' }}</div>
           </div>
 
@@ -76,8 +76,8 @@
           <p class="section-subtitle">
             {{
               hasDentalData
-                ? `Diente asociado: ${procedures[0]?.dienteDisplay || activeTeeth.join(', ')}`
-                : 'Sin diente asociado a este procedimiento.'
+                ? `Pieza dental asociada: ${procedures[0]?.dienteDisplay || activeTeeth.join(', ')}`
+                : 'Sin pieza dental asociada a esta intervención.'
             }}
           </p>
 
@@ -100,9 +100,9 @@
     <div v-if="confirmDelete" class="modal-backdrop">
       <div class="modal-dialog-centered">
         <div class="modal-content">
-          <h3 class="modal-title">Eliminar procedimiento</h3>
+          <h3 class="modal-title">Eliminar intervención</h3>
           <p class="modal-text">
-            Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este procedimiento?
+            Esta acción no se puede deshacer. ¿Seguro que quieres eliminar esta intervención?
           </p>
           <div class="modal-footer">
             <button class="action-btn action-btn-secondary" @click="confirmDelete = false" type="button">Cancelar</button>

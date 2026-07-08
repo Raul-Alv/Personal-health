@@ -154,7 +154,7 @@
           @click="goProcedures"
           :disabled="isEditing"
         >
-          Ver procedimientos
+          Ver intervenciones
         </button>
 
         <button

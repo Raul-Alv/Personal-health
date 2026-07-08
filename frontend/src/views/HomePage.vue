@@ -6,7 +6,7 @@
         Una interfaz más clara para tu información clínica
       </h1>
       <p class="home-copy">
-        Accede a tus pacientes, procedimientos y alergias desde un espacio ordenado, sin distracciones y con un lenguaje más cuidado.
+        Accede a tus pacientes, intervenciones y alergias desde un espacio ordenado, sin distracciones y con un lenguaje más cuidado.
       </p>
 
       <div class="home-actions">
