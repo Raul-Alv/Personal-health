@@ -19,7 +19,7 @@
         {{ files.length }} archivo<span v-if="files.length !== 1">s</span> seleccionado<span v-if="files.length !== 1">s</span>
       </p>
 
-      <button :disabled="!files.length" @click="previewFiles">Previsualizar y validar</button>
+      <button :disabled="!files.length || importing" @click="previewFiles">Previsualizar y validar</button>
 
       <div v-if="validationErrors.length" class="import-errors">
         <h2>Errores de validacion</h2>
@@ -32,16 +32,38 @@
 
       <div v-if="preview.length" class="preview-section">
         <h2>Vista previa</h2>
-        <div v-for="(item, idx) in preview" :key="idx" class="preview-item">
-          <strong>{{ item.tipo.toUpperCase() }}</strong>
+        <div class="preview-scroll" tabindex="0" aria-label="Vista previa de datos importados">
+          <div v-for="(item, idx) in preview" :key="idx" class="preview-item">
+            <strong>{{ item.tipo.toUpperCase() }}</strong>
+            <ul>
+              <li v-for="campo in filtrarDatos(item.datos)" :key="campo.etiqueta">
+                <span class="label">{{ campo.etiqueta }}: </span>
+                <span>{{ campo.valor }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <button :disabled="importing" @click="confirmImport">
+          {{ importing ? 'Importando...' : 'Confirmar importacion' }}
+        </button>
+      </div>
+    </div>
+
+    <div v-if="importSuccessVisible" class="import-success-overlay">
+      <div class="import-success-modal" role="dialog" aria-modal="true" aria-labelledby="import-success-title">
+        <h2 id="import-success-title">Importacion completada</h2>
+        <p>Los datos se han actualizado correctamente.</p>
+
+        <div v-if="importSuccessWarnings.length" class="import-success-warnings">
+          <strong>Avisos</strong>
           <ul>
-            <li v-for="campo in filtrarDatos(item.datos)" :key="campo.etiqueta">
-              <span class="label">{{ campo.etiqueta }}: </span>
-              <span>{{ campo.valor }}</span>
+            <li v-for="(warning, index) in importSuccessWarnings" :key="`${warning}-${index}`">
+              {{ warning }}
             </li>
           </ul>
         </div>
-        <button @click="confirmImport">Confirmar importacion</button>
+
+        <button type="button" @click="acceptImportSuccess">Aceptar</button>
       </div>
     </div>
   </div>
@@ -54,10 +76,14 @@ const {
   files,
   preview,
   validationErrors,
+  importSuccessVisible,
+  importSuccessWarnings,
+  importing,
   filtrarDatos,
   onFileChange,
   previewFiles,
-  confirmImport
+  confirmImport,
+  acceptImportSuccess
 } = useImportView()
 </script>
 

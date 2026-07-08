@@ -93,7 +93,8 @@
   transform: translateY(-1px);
 }
 
-.import-container > button:disabled {
+.import-container > button:disabled,
+.preview-section > button:disabled {
   opacity: 0.6;
 }
 
@@ -101,6 +102,17 @@
   margin-top: 28px;
   padding-top: 24px;
   border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 16px;
+}
+
+.preview-scroll {
+  max-height: min(52vh, 520px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 8px;
+  display: grid;
+  gap: 14px;
 }
 
 .import-errors {
@@ -126,7 +138,6 @@
 }
 
 .preview-item {
-  margin-top: 14px;
   border: 1px solid var(--color-border);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(242, 250, 247, 0.94) 100%);
   padding: 18px;
@@ -148,6 +159,71 @@
 .label {
   font-weight: 700;
   color: var(--color-text);
+}
+
+.import-success-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 35, 41, 0.46);
+  backdrop-filter: blur(4px);
+}
+
+.import-success-modal {
+  width: min(100%, 440px);
+  display: grid;
+  gap: 14px;
+  padding: 28px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.import-success-modal h2,
+.import-success-modal p {
+  margin: 0;
+}
+
+.import-success-modal h2 {
+  font-family: var(--font-display);
+  color: var(--color-text);
+}
+
+.import-success-modal p {
+  color: var(--color-text-soft);
+}
+
+.import-success-warnings {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(254, 249, 195, 0.72);
+  color: #854d0e;
+}
+
+.import-success-warnings ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.import-success-modal button {
+  min-height: 46px;
+  border: none;
+  border-radius: 14px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--gradient-primary);
+  box-shadow: 0 18px 30px rgba(15, 118, 110, 0.18);
+}
+
+.import-success-modal button:hover {
+  background: var(--gradient-primary-hover);
+  transform: translateY(-1px);
 }
 
 @media (max-width: 640px) {

@@ -8,7 +8,7 @@ configure_paths()
 
 from rdflib import BNode, Graph, Literal, RDF, URIRef
 
-from services.fhir_package_service import FHIR, FhirPackageService
+from services.fhir_package_service import FHIR, FhirPackageService, SchemaValidationError
 
 
 class FhirPackageLowLevelBehaviorTests(ReadableTestCase):
@@ -39,6 +39,22 @@ class FhirPackageLowLevelBehaviorTests(ReadableTestCase):
 
         self.assertIn("fhir:Procedure.note @<AnnotationShape>*", schema)
         self.assertIn("fhir:Annotation.text @<StringLikeShape>", schema)
+
+    def test_assert_valid_graph_reports_invalid_shex_without_crashing(self):
+        """Schema invalido: devuelve un error controlado en vez de propagar ValueError."""
+        graph = Graph()
+        invalid_schema = "start=@<Broken>\n<Broken> { a [ }"
+
+        with self.assertRaises(SchemaValidationError) as ctx:
+            self.service.assert_valid_graph(
+                graph=graph,
+                schema_str=invalid_schema,
+                message="No se pudo validar el paquete RDF.",
+            )
+
+        self.assertEqual(ctx.exception.message, "No se pudo validar el paquete RDF.")
+        self.assertEqual(ctx.exception.errors[0]["shape"], "ShEx")
+        self.assertIn("No se ha podido interpretar", ctx.exception.errors[0]["reason"])
 
     def test_validate_patient_references_accepts_matching_patient_references(self):
         """Referencias validas: acepta procedimientos enlazados a un Patient incluido."""

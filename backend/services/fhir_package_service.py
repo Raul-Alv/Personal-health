@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import re
 import zipfile
+from contextlib import redirect_stderr
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -85,7 +86,23 @@ class FhirPackageService:
         validate_patient_references: bool = True,
         allowed_external_patient_uris: set[str] | None = None,
     ) -> list[dict]:
-        evaluator = ShExEvaluator(rdf=graph, schema=schema_str)
+        shex_parse_output = io.StringIO()
+        try:
+            with redirect_stderr(shex_parse_output):
+                evaluator = ShExEvaluator(rdf=graph, schema=schema_str)
+        except Exception as exc:
+            parse_details = " ".join(shex_parse_output.getvalue().split())
+            reason = f"No se ha podido interpretar el esquema ShEx: {exc}"
+            if parse_details:
+                reason = f"{reason}. {parse_details}"
+            return [
+                {
+                    "focus": "schema",
+                    "shape": "ShEx",
+                    "reason": reason,
+                }
+            ]
+
         errors: list[dict] = []
         validated_resources = 0
 

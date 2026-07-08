@@ -164,14 +164,6 @@
         >
           Ver alergias
         </button>
-
-        <button
-          class="btn primary"
-          @click="doExport"
-          :disabled="isEditing"
-        >
-          Exportar
-        </button>
       </aside>
     </div>
   </div>
