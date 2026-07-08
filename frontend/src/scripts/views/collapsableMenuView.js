@@ -1,6 +1,7 @@
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/api/axios'
+import { PATIENT_MENU_REFRESH_EVENT } from '@/scripts/shared/patientMenu'
 import { clearSession, useSessionToken } from '@/scripts/shared/session'
 
 export function useCollapsableMenuView() {
@@ -82,13 +83,29 @@ export function useCollapsableMenuView() {
     clearSession({ name: 'Login' })
   }
 
-  onMounted(cargarPacientes)
+  onMounted(() => {
+    cargarPacientes()
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener(PATIENT_MENU_REFRESH_EVENT, cargarPacientes)
+    }
+  })
+
+  onUnmounted(() => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener(PATIENT_MENU_REFRESH_EVENT, cargarPacientes)
+    }
+  })
 
   watch(
     () => currentPatientId.value,
-    (newPatientId) => {
+    async (newPatientId, oldPatientId) => {
       if (newPatientId) {
         pacienteAbierto.value = newPatientId
+
+        if (oldPatientId !== undefined && newPatientId !== oldPatientId) {
+          await cargarPacientes()
+        }
       }
     },
     { immediate: true }

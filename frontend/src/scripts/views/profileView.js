@@ -197,6 +197,8 @@ export function useProfileView() {
   }
 
   const confirmImportPatient = async () => {
+    if (importing.value) return
+
     if (!selectedImportFiles.value.length) {
       importError.value = 'Debes seleccionar RDF + ShEx, o un ZIP exportado por la aplicacion.'
       return

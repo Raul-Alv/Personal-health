@@ -10,7 +10,7 @@ from _support import ReadableTestCase, configure_paths, load_default_schema_byte
 
 configure_paths()
 
-from rdflib import Graph, Literal, RDF, URIRef
+from rdflib import BNode, Graph, Literal, RDF, URIRef
 
 fake_rdf_store_module = types.ModuleType("rdf_store")
 fake_rdf_store_module.get_allergy_graph = lambda: None
@@ -54,6 +54,22 @@ def load_procedure_only_import_files() -> list[tuple[str, bytes]]:
         ("procedimientos.ttl", read_fixture_bytes("import_valid", "procedimientos.ttl")),
         ("fhir_r4_clinical.shex", load_default_schema_bytes()),
     ]
+
+
+def patient_identifier_values(graph: Graph, patient_uri: URIRef) -> list[str]:
+    values: list[str] = []
+    for identifier_node in graph.objects(patient_uri, FHIR["Patient.identifier"]):
+        for value_node in graph.objects(identifier_node, FHIR["Identifier.value"]):
+            values.extend(str(value) for value in graph.objects(value_node, FHIR.value))
+    return values
+
+
+def add_patient_identifier(graph: Graph, patient_uri: URIRef, value: str) -> None:
+    identifier_node = BNode()
+    value_node = BNode()
+    graph.add((patient_uri, FHIR["Patient.identifier"], identifier_node))
+    graph.add((identifier_node, FHIR["Identifier.value"], value_node))
+    graph.add((value_node, FHIR.value, Literal(value)))
 
 
 class RealRdfImportFlowTests(ReadableTestCase):
@@ -117,8 +133,9 @@ class RealRdfImportFlowTests(ReadableTestCase):
         get_procedure_graph.return_value = procedure_graph
         get_allergy_graph.return_value = allergy_graph
 
+        user_uri = "http://example.org/fhir/custom#Usuario/ana"
         response = self.service.confirm_files(
-            user_uri="http://example.org/fhir/custom#Usuario/ana",
+            user_uri=user_uri,
             files=load_valid_import_files(),
             set_as_favorite=True,
         )
@@ -129,16 +146,103 @@ class RealRdfImportFlowTests(ReadableTestCase):
 
         self.assertEqual(response, {"redirect": "/patient/pac-001"})
         self.assertIn((patient_uri, RDF.type, FHIR.Patient), patient_graph)
+        self.assertEqual(patient_identifier_values(patient_graph, patient_uri), ["pac-001"])
         self.assertIn((procedure_uri, RDF.type, FHIR.Procedure), procedure_graph)
         note_nodes = list(procedure_graph.objects(procedure_uri, FHIR["Procedure.note"]))
         self.assertEqual(len(note_nodes), 1)
         self.assertIn(Literal("Nota clinica del procedimiento"), set(procedure_graph.objects(None, FHIR.value)))
         self.assertIn((allergy_uri, RDF.type, FHIR.AllergyIntolerance), allergy_graph)
-        self.assertIn((URIRef("http://example.org/fhir/custom#Usuario/ana"), EX.tienePaciente, patient_uri), user_graph)
-        user_repo_cls.return_value.set_favorite_patient.assert_called_once_with(
-            "http://example.org/fhir/custom#Usuario/ana",
-            "http://hl7.org/fhir/Patient/pac-001",
+        self.assertIn((URIRef(user_uri), EX.tienePaciente, patient_uri), user_graph)
+        self.assertIn((URIRef(user_uri), EX.pacienteFavorito, patient_uri), user_graph)
+        user_repo_cls.return_value.set_favorite_patient.assert_not_called()
+
+    @patch("services.import_service.get_allergy_graph")
+    @patch("services.import_service.get_procedure_graph")
+    @patch("services.import_service.get_patient_graph")
+    @patch("services.import_service.get_user_graph")
+    def test_confirm_files_rejects_patient_already_linked_to_user(
+        self,
+        get_user_graph,
+        get_patient_graph,
+        get_procedure_graph,
+        get_allergy_graph,
+    ):
+        """Confirmacion duplicada: rechaza un paciente que ya esta vinculado al usuario."""
+        user_graph = MemoryCommitGraph()
+        patient_graph = MemoryCommitGraph()
+        procedure_graph = MemoryCommitGraph()
+        allergy_graph = MemoryCommitGraph()
+
+        get_user_graph.return_value = user_graph
+        get_patient_graph.return_value = patient_graph
+        get_procedure_graph.return_value = procedure_graph
+        get_allergy_graph.return_value = allergy_graph
+
+        user_uri = "http://example.org/fhir/custom#Usuario/ana"
+        patient_uri = URIRef("http://hl7.org/fhir/Patient/pac-001")
+        patient_graph.add((patient_uri, RDF.type, FHIR.Patient))
+        user_graph.add((URIRef(user_uri), EX.tienePaciente, patient_uri))
+
+        with self.assertRaises(SchemaValidationError) as ctx:
+            self.service.confirm_files(
+                user_uri=user_uri,
+                files=load_valid_import_files(),
+                set_as_favorite=True,
+            )
+
+        self.assertEqual(
+            ctx.exception.message,
+            "La importacion se ha detenido porque el paciente ya existe para este usuario.",
         )
+        self.assertTrue(
+            any("ya esta asociado" in error["reason"] for error in ctx.exception.errors),
+            ctx.exception.errors,
+        )
+        self.assertEqual(len(procedure_graph), 0)
+        self.assertEqual(len(allergy_graph), 0)
+
+    @patch("services.import_service.get_allergy_graph")
+    @patch("services.import_service.get_procedure_graph")
+    @patch("services.import_service.get_patient_graph")
+    @patch("services.import_service.get_user_graph")
+    def test_confirm_files_rejects_patient_already_linked_by_identifier(
+        self,
+        get_user_graph,
+        get_patient_graph,
+        get_procedure_graph,
+        get_allergy_graph,
+    ):
+        """Confirmacion duplicada: detecta reimportaciones de pacientes renombrados."""
+        user_graph = MemoryCommitGraph()
+        patient_graph = MemoryCommitGraph()
+        procedure_graph = MemoryCommitGraph()
+        allergy_graph = MemoryCommitGraph()
+
+        get_user_graph.return_value = user_graph
+        get_patient_graph.return_value = patient_graph
+        get_procedure_graph.return_value = procedure_graph
+        get_allergy_graph.return_value = allergy_graph
+
+        user_uri = "http://example.org/fhir/custom#Usuario/raul"
+        owner_suffix = hashlib.sha1(user_uri.encode("utf-8")).hexdigest()[:10]
+        linked_patient_uri = URIRef(f"http://hl7.org/fhir/Patient/pac-001--imported-{owner_suffix}")
+        patient_graph.add((linked_patient_uri, RDF.type, FHIR.Patient))
+        add_patient_identifier(patient_graph, linked_patient_uri, "pac-001")
+        user_graph.add((URIRef(user_uri), EX.tienePaciente, linked_patient_uri))
+
+        with self.assertRaises(SchemaValidationError) as ctx:
+            self.service.confirm_files(
+                user_uri=user_uri,
+                files=load_valid_import_files(),
+                set_as_favorite=True,
+            )
+
+        self.assertTrue(
+            any(str(linked_patient_uri).split("/")[-1] in error["reason"] for error in ctx.exception.errors),
+            ctx.exception.errors,
+        )
+        self.assertEqual(len(procedure_graph), 0)
+        self.assertEqual(len(allergy_graph), 0)
 
     @patch("services.import_service.UserRepo")
     @patch("services.import_service.get_allergy_graph")
@@ -227,13 +331,50 @@ class RealRdfImportFlowTests(ReadableTestCase):
 
         self.assertEqual(response["redirect"], f"/patient/{expected_patient_id}")
         self.assertIn((expected_patient_uri, RDF.type, FHIR.Patient), patient_graph)
-        self.assertNotIn((expected_procedure_uri, RDF.type, FHIR.Procedure), procedure_graph)
+        self.assertEqual(patient_identifier_values(patient_graph, expected_patient_uri), ["pac-001"])
+        self.assertIn((expected_procedure_uri, RDF.type, FHIR.Procedure), procedure_graph)
         self.assertIn((expected_allergy_uri, RDF.type, FHIR.AllergyIntolerance), allergy_graph)
         self.assertIn((URIRef(user_uri), EX.tienePaciente, expected_patient_uri), user_graph)
-        self.assertIn("No se ha cargado el procedimiento 'proc-001' porque ya existe.", response["warnings"])
-        self.assertNotIn(Literal(f"Patient/{expected_patient_id}"), set(procedure_graph.objects(None, FHIR.value)))
+        self.assertIn((URIRef(user_uri), EX.pacienteFavorito, expected_patient_uri), user_graph)
+        self.assertNotIn("warnings", response)
+        self.assertIn(Literal(f"Patient/{expected_patient_id}"), set(procedure_graph.objects(None, FHIR.value)))
         self.assertIn(Literal(f"Patient/{expected_patient_id}"), set(allergy_graph.objects(None, FHIR.value)))
-        user_repo_cls.return_value.set_favorite_patient.assert_called_once_with(user_uri, str(expected_patient_uri))
+        user_repo_cls.return_value.set_favorite_patient.assert_not_called()
+
+    @patch("services.import_service.get_allergy_graph")
+    @patch("services.import_service.get_procedure_graph")
+    @patch("services.import_service.get_patient_graph")
+    @patch("services.import_service.get_user_graph")
+    def test_confirm_files_does_not_persist_partial_data_when_staging_fails(
+        self,
+        get_user_graph,
+        get_patient_graph,
+        get_procedure_graph,
+        get_allergy_graph,
+    ):
+        """Confirmacion atomica: si un recurso falla antes de aplicar, no guarda recursos previos."""
+        user_graph = MemoryCommitGraph()
+        patient_graph = MemoryCommitGraph()
+        procedure_graph = MemoryCommitGraph()
+        allergy_graph = MemoryCommitGraph()
+
+        get_user_graph.return_value = user_graph
+        get_patient_graph.return_value = patient_graph
+        get_procedure_graph.return_value = procedure_graph
+        get_allergy_graph.return_value = allergy_graph
+
+        with patch.object(ImportService, "_copy_procedure_subgraph", side_effect=RuntimeError("fallo simulado")):
+            with self.assertRaises(RuntimeError):
+                self.service.confirm_files(
+                    user_uri="http://example.org/fhir/custom#Usuario/ana",
+                    files=load_valid_import_files(),
+                    set_as_favorite=True,
+                )
+
+        self.assertEqual(len(patient_graph), 0)
+        self.assertEqual(len(procedure_graph), 0)
+        self.assertEqual(len(allergy_graph), 0)
+        self.assertEqual(len(user_graph), 0)
 
     @patch("services.import_service.UserRepo")
     def test_confirm_files_rejects_procedure_only_when_referenced_patient_is_not_linked(self, user_repo_cls):

@@ -1,0 +1,60 @@
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+start = @<AllergyIntoleranceShape>
+
+<AllergyIntoleranceShape> {
+  rdf:type [fhir:AllergyIntolerance] ;
+  fhir:AllergyIntolerance.clinicalStatus @<ClinicalStatusShape> ;
+  fhir:AllergyIntolerance.category @<AllergyCategoryShape> ;
+  fhir:AllergyIntolerance.code @<AllergyCodeShape> ;
+  fhir:AllergyIntolerance.patient @<ReferenceShape> ;
+  fhir:AllergyIntolerance.onsetDateTime @<DateTimeShape> ;
+  fhir:AllergyIntolerance.actor @<ReferenceShape>?
+}
+
+<ClinicalStatusShape> {
+  fhir:CodeableConcept.coding @<ClinicalStatusCodingShape>+
+}
+
+<ClinicalStatusCodingShape> {
+  fhir:Coding.system @<UriLikeShape> ;
+  fhir:Coding.code @<ClinicalStatusCodeShape>
+}
+
+<ClinicalStatusCodeShape> {
+  fhir:value [ "active" "inactive" "resolved" ]
+} OR [ "active" "inactive" "resolved" ]
+
+<AllergyCategoryShape> {
+  fhir:value [ "food" "medication" "environment" "biologic" ]
+} OR [ "food" "medication" "environment" "biologic" ]
+
+<AllergyCodeShape> {
+  fhir:CodeableConcept.coding @<CodingShape>+
+}
+
+<CodingShape> {
+  fhir:Coding.system @<UriLikeShape> ;
+  fhir:Coding.code @<StringLikeShape> ;
+  fhir:Coding.display @<StringLikeShape>
+}
+
+<ReferenceShape> {
+  fhir:Reference.reference @<StringLikeShape>
+}
+
+<StringLikeShape> {
+  fhir:value xsd:string
+} OR xsd:string
+
+<UriLikeShape> {
+  fhir:value xsd:anyURI
+} OR {
+  fhir:value xsd:string
+} OR xsd:anyURI OR xsd:string
+
+<DateTimeShape> {
+  fhir:value xsd:dateTime
+} OR xsd:dateTime

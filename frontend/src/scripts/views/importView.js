@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api/axios'
 import { formatPreviewValue } from '@/scripts/shared/fhirDisplay'
+import { emitPatientMenuRefresh } from '@/scripts/shared/patientMenu'
 
 const prefixMap = {
   'http://hl7.org/fhir/': 'fhir:',
@@ -84,6 +85,10 @@ export function useImportView() {
   const files = ref([])
   const preview = ref([])
   const validationErrors = ref([])
+  const importSuccessVisible = ref(false)
+  const importSuccessRedirect = ref('')
+  const importSuccessWarnings = ref([])
+  const importing = ref(false)
   const router = useRouter()
 
   const extractImportErrorMessage = (error, fallbackMessage) => {
@@ -115,6 +120,10 @@ export function useImportView() {
     files.value = Array.from(event.target.files || [])
     preview.value = []
     validationErrors.value = []
+    importSuccessVisible.value = false
+    importSuccessRedirect.value = ''
+    importSuccessWarnings.value = []
+    importing.value = false
   }
 
   const previewFiles = async () => {
@@ -141,8 +150,11 @@ export function useImportView() {
   }
 
   const confirmImport = async () => {
+    if (importing.value) return
+
     try {
       validationErrors.value = []
+      importing.value = true
       const form = new FormData()
       files.value.forEach((file) => form.append('files', file))
 
@@ -150,24 +162,38 @@ export function useImportView() {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
 
-      if (Array.isArray(data.warnings) && data.warnings.length) {
-        alert(data.warnings.join('\n'))
-      }
-
-      router.push(data.redirect.replace('/paciente/', '/patient/'))
+      importSuccessRedirect.value = data.redirect.replace('/paciente/', '/patient/')
+      importSuccessWarnings.value = Array.isArray(data.warnings) ? data.warnings : []
+      importSuccessVisible.value = true
     } catch (error) {
       console.error('Error al confirmar la importacion:', error)
       alert(extractImportErrorMessage(error, 'La importacion no se pudo completar.'))
+    } finally {
+      importing.value = false
     }
+  }
+
+  const acceptImportSuccess = async () => {
+    importSuccessVisible.value = false
+
+    if (importSuccessRedirect.value) {
+      await router.push(importSuccessRedirect.value)
+    }
+
+    emitPatientMenuRefresh()
   }
 
   return {
     files,
     preview,
     validationErrors,
+    importSuccessVisible,
+    importSuccessWarnings,
+    importing,
     filtrarDatos,
     onFileChange,
     previewFiles,
-    confirmImport
+    confirmImport,
+    acceptImportSuccess
   }
 }

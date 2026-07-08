@@ -154,7 +154,7 @@
           @click="goProcedures"
           :disabled="isEditing"
         >
-          Ver procedimientos
+          Ver intervenciones
         </button>
 
         <button
@@ -163,14 +163,6 @@
           :disabled="isEditing"
         >
           Ver alergias
-        </button>
-
-        <button
-          class="btn primary"
-          @click="doExport"
-          :disabled="isEditing"
-        >
-          Exportar
         </button>
       </aside>
     </div>

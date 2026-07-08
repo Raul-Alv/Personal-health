@@ -46,7 +46,7 @@
                   <span class="submenu-icon">
                     <ClipboardList :size="16" />
                   </span>
-                  Procedimientos
+                  Intervenciones
                 </button>
                 <button @click="navegar(paciente.id, 'alergias')" class="submenu-item" type="button">
                   <span class="submenu-icon">

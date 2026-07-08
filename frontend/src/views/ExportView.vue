@@ -39,7 +39,7 @@
         </div>
 
         <p v-if="!hasExportableItems" class="empty-state">
-          No hay procedimientos ni alergias disponibles para este paciente.
+          No hay intervenciones ni alergias disponibles para este paciente.
         </p>
 
         <template v-else>
@@ -51,7 +51,7 @@
           <div class="selection-groups">
             <section v-if="procedimientos.length" class="selection-group">
               <div class="selection-group-header">
-                <h3 class="section-title">Procedimientos ({{ procedimientos.length }})</h3>
+                <h3 class="section-title">Intervenciones ({{ procedimientos.length }})</h3>
                 <div class="selection-group-actions">
                   <button @click="selectAllProcedimientos" class="selection-link-btn">Todos</button>
                   <button @click="deselectAllProcedimientos" class="selection-link-btn">Ninguno</button>
@@ -109,7 +109,7 @@
 
         <div class="summary">
           <p class="selection-count">Elementos seleccionados: {{ totalSeleccionados }}</p>
-          <p>Procedimientos: {{ procedimientosSeleccionados.length }} | Alergias: {{ alergiasSeleccionadas.length }}</p>
+          <p>Intervenciones: {{ procedimientosSeleccionados.length }} | Alergias: {{ alergiasSeleccionadas.length }}</p>
           <p>Datos del paciente: {{ incluirPaciente ? 'incluidos' : 'no incluidos' }}</p>
         </div>
 

@@ -5,7 +5,7 @@
         <p class="auth-eyebrow">Acceso</p>
         <h1 class="title">Iniciar sesión</h1>
         <p class="auth-copy">
-          Entra en tu espacio para consultar perfiles, procedimientos y alergias con una presentación más clara.
+          Entra en tu espacio para consultar perfiles, intervenciones y alergias con una presentación más clara.
         </p>
       </div>
       <form @submit.prevent="login">
